@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <title>Dashboard — Praktikum Linux</title>
+  <%- include('partials/head') %>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+  <nav class="bg-white border-b border-slate-200">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-brand-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">L</div>
+        <div>
+          <p class="text-sm font-semibold text-slate-900">Praktikum Linux</p>
+          <p class="text-xs text-slate-500">UMY</p>
+        </div>
+      </div>
+      <button id="btn-logout" class="text-sm text-slate-600 hover:text-slate-900 border border-slate-300 hover:border-slate-400 rounded-lg px-3.5 py-1.5 transition-colors">
+        Logout
+      </button>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-4 py-8">
+
+    <div class="mb-8">
+      <h1 class="text-2xl font-semibold text-slate-900">Halo, <%= nama %> 👋</h1>
+      <p class="text-sm text-slate-500 mt-1">NIM: <%= nim %></p>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8">
+
+      <div id="no-container-box" class="hidden text-center py-10">
+        <div class="w-14 h-14 bg-slate-100 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl">📦</div>
+        <p class="text-slate-600 mb-1">Kamu belum punya container aktif.</p>
+        <p class="text-xs text-slate-400 mb-6">Container otomatis dihapus setelah <%= ttlHours %> jam.</p>
+        <button id="btn-create-container"
+          class="bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-colors">
+          🚀 Buat Container Baru
+        </button>
+      </div>
+
+      <div id="container-box" class="hidden">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-base font-semibold text-slate-900 flex items-center gap-2">
+            📦 <span id="c-name"></span>
+          </h3>
+          <span id="c-status" class="text-xs font-medium bg-green-100 text-green-700 px-2.5 py-1 rounded-full"></span>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+          <table class="w-full text-sm">
+            <tbody class="divide-y divide-slate-200">
+              <tr>
+                <td class="px-4 py-3 text-slate-500 w-40">Perintah SSH</td>
+                <td class="px-4 py-3">
+                  <code id="c-ssh-command" class="bg-slate-900 text-green-400 px-2.5 py-1 rounded text-xs"></code>
+                  <button id="btn-copy-ssh" class="text-xs text-brand-600 hover:text-brand-700 ml-2 font-medium">Copy</button>
+                </td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-slate-500">Username</td>
+                <td class="px-4 py-3 text-slate-900" id="c-username"></td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-slate-500">Password</td>
+                <td class="px-4 py-3 text-slate-900 font-mono" id="c-password"></td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-slate-500">Dibuat</td>
+                <td class="px-4 py-3 text-slate-900" id="c-created"></td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-slate-500">Kadaluarsa</td>
+                <td class="px-4 py-3 text-slate-900" id="c-expires"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p id="password-warn" class="hidden text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5 mt-4">
+          ⚠️ Catat password ini sekarang! Tidak akan ditampilkan lagi setelah kamu tinggalkan halaman ini.
+        </p>
+
+        <button id="btn-destroy-container"
+          class="mt-5 text-sm text-red-600 hover:text-white hover:bg-red-600 border border-red-200 hover:border-red-600 rounded-lg px-4 py-2 transition-colors">
+          🗑️ Hapus Container
+        </button>
+      </div>
+
+      <p id="dash-error" class="text-sm text-red-600 mt-4 min-h-[1.25rem]"></p>
+    </div>
+
+  </main>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

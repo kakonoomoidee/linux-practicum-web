@@ -1,0 +1,30 @@
+{
+  "name": "linux-praktikum-container",
+  "version": "3.0.0",
+  "description": "Platform provisioning container Linux untuk praktikum mahasiswa (layered architecture, PostgreSQL, EJS + Tailwind)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "import-students": "node scripts/import-students.js",
+    "seed": "node scripts/seed.js",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f app",
+    "docker:seed": "docker compose exec app node scripts/seed.js",
+    "docker:import-students": "docker compose exec app node scripts/import-students.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "connect-pg-simple": "^10.0.0",
+    "csv-parse": "^5.5.6",
+    "dockerode": "^4.0.2",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.21.0",
+    "express-session": "^1.18.0",
+    "express-rate-limit": "^7.4.0",
+    "node-cron": "^3.0.3",
+    "pg": "^8.13.0"
+  }
+}
