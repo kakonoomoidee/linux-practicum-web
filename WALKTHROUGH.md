@@ -85,6 +85,19 @@ Ini bagian paling kompleks dari sistem, ada di `src/services/containerService.js
 - `docker/entrypoint.sh` — dijalankan saat container start, membuat user `mahasiswa` dengan password dari environment variable (dikirim saat provisioning), memberi akses `sudo` penuh (`NOPASSWD:ALL`), lalu menjalankan `sshd`.
 - Build manual sekali via `scripts/build-image.sh` — ini **beda** dari image `app` (web app-nya sendiri), dan dibangun langsung di host tempat Docker Engine berjalan.
 
+### 3.4 Auto-Detect Host untuk SSH
+
+`src/utils/detectHost.js` menentukan IP/host yang ditampilkan ke mahasiswa di dashboard, dengan urutan prioritas:
+
+1. `SSH_HOST_DISPLAY` di `.env` kalau diisi manual → selalu menang.
+2. Kalau kedeteksi jalan di WSL (`WSL_DISTRO_NAME` ada) → pakai `localhost` (WSL2 auto-forward port ke Windows).
+3. Kalau server Linux biasa → scan network interface, ambil IPv4 LAN yang paling masuk akal.
+4. Fallback `127.0.0.1` kalau semua gagal, dengan warning jelas di log server.
+
+Hasil deteksi dan alasannya di-log jelas saat server startup (`SSH host mahasiswa : <host> [<sumber>]`), jadi admin bisa langsung verifikasi apakah hasilnya sudah benar tanpa perlu baca kode.
+
+**File terkait:** `src/utils/detectHost.js`, `src/config/env.js`, `server.js` (logging saat startup).
+
 ---
 
 ## 4. Infrastruktur & Deployment
@@ -92,8 +105,8 @@ Ini bagian paling kompleks dari sistem, ada di `src/services/containerService.js
 ### 4.1 Docker Compose
 
 - `docker-compose.yml` mendefinisikan 2 service: `app` (web app) dan `db` (PostgreSQL 16).
-- Service `db` **tidak** expose port ke host secara default (lebih aman, hanya bisa diakses dari dalam Docker network internal oleh `app`).
-- Service `app` mount `/var/run/docker.sock` dari host — ini yang memungkinkan app "mengontrol" Docker Engine host untuk membuat container mahasiswa (pola *sibling containers*).
+- Service `db` port-nya di-bind ke `127.0.0.1` saja (loopback), bukan ke `0.0.0.0` — jadi tetap tidak reachable dari LAN kampus, tapi bisa diakses `app` yang jalan di network host yang sama.
+- Service `app` pakai `network_mode: host` — supaya bisa "melihat" network interface asli milik host (dipakai buat auto-detect IP SSH, lihat bagian 3.4) — dan mount `/var/run/docker.sock` dari host, memungkinkan app "mengontrol" Docker Engine host untuk membuat container mahasiswa (pola *sibling containers*).
 - `Dockerfile` untuk `app` pakai multi-stage build: stage pertama install dependency dengan compiler (buat native module seperti `bcrypt`), stage kedua cuma bawa hasil `node_modules` tanpa compiler (image lebih kecil).
 
 ### 4.2 Database

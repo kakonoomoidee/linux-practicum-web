@@ -13,6 +13,7 @@ Platform buat mahasiswa "minjem" container Linux full lewat browser (self-servic
 - ✅ Semua `console.log`/`console.error` di seluruh codebase diganti logger terstruktur
 
 **v4 changelog:**
+- ✅ **Auto-detect IP/host SSH** — ga perlu isi `SSH_HOST_DISPLAY` manual lagi. Otomatis pakai `localhost` kalau jalan di WSL, atau scan network interface kalau di server Linux biasa. Manual override tetap bisa lewat `.env` kalau perlu.
 - ✅ **Remember me** saat login — session bertahan 30 hari kalau dicentang (default: session lebih pendek)
 - ✅ **Toggle show/hide password** (ikon mata) di semua field password
 - ✅ **Skeleton loading** di dashboard saat memuat status, membuat container baru, dan menghapus container — biar ga terasa "diam" pas nunggu proses Docker
@@ -100,7 +101,9 @@ Docker provisioning (`dockerService.js`) diperlakukan sebagai service tersendiri
 │   │   ├── viewRoutes.js              # /login, /dashboard, dst (halaman)
 │   │   └── adminRoutes.js             # /admin/*
 │   ├── cron/cleanupJob.js             # Auto-hapus container expired
-│   └── utils/ServiceError.js          # Error class custom antar layer
+│   └── utils/
+│       ├── ServiceError.js            # Error class custom antar layer
+│       └── detectHost.js              # ⭐ Auto-detect IP/host buat SSH mahasiswa
 ├── logs/                              # File log (rotasi harian, di-gitignore isinya)
 ├── views/                             # EJS templates (Tailwind via CDN)
 │   ├── partials/
@@ -148,7 +151,9 @@ Sudah diuji end-to-end di lingkungan testing (lihat catatan pengujian): skenario
 
 Semua dibungkus jadi 2 service: `app` (web app Node.js) dan `db` (PostgreSQL). Tinggal `docker compose up`, ga perlu install Node/PostgreSQL manual di server kampus — cukup Docker Engine aja.
 
-**Cara kerja penting:** karena app ini juga perlu "mengontrol" Docker buat bikin container mahasiswa, container `app` dijalankan dengan **Docker socket host di-mount ke dalamnya** (`/var/run/docker.sock`). Ini bikin app bisa nyuruh Docker Engine host bikin/hapus container mahasiswa sebagai *sibling container* — bukan Docker-di-dalam-Docker beneran, cuma "titip perintah" ke Docker Engine yang sama dengan yang dipakai host. Konsekuensinya: container mahasiswa yang dibuat itu port-nya ke-bind ke **host**, jadi `SSH_HOST_DISPLAY` di `.env` tetap harus IP LAN kampus (bukan nama service `app`/`db`).
+**Cara kerja penting:** karena app ini juga perlu "mengontrol" Docker buat bikin container mahasiswa, container `app` dijalankan dengan **Docker socket host di-mount ke dalamnya** (`/var/run/docker.sock`). Ini bikin app bisa nyuruh Docker Engine host bikin/hapus container mahasiswa sebagai *sibling container* — bukan Docker-di-dalam-Docker beneran, cuma "titip perintah" ke Docker Engine yang sama dengan yang dipakai host. Konsekuensinya: container mahasiswa yang dibuat itu port-nya ke-bind ke **host**.
+
+Service `app` juga pakai `network_mode: host`, supaya bisa **auto-detect IP LAN server** buat ditampilkan ke mahasiswa (ga perlu isi `SSH_HOST_DISPLAY` manual — lihat `about-proyek.md` bagian "Kenapa SSH_HOST_DISPLAY sekarang auto-detect" buat detail lengkapnya). Kalau kamu pakai Docker Desktop (Windows/Mac) dan auto-detect-nya meleset, isi `SSH_HOST_DISPLAY` manual di `.env` — nilai itu akan selalu menang.
 
 ### 1. Prasyarat
 
@@ -164,8 +169,8 @@ cp .env.example .env
 Edit `.env`, minimal ubah:
 - `PGPASSWORD` — password PostgreSQL (jangan biarin default)
 - `SESSION_SECRET` — random string panjang
-- `SSH_HOST_DISPLAY` — IP LAN server kampus (yang dipakai mahasiswa buat SSH nantinya)
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD` — kosongin `ADMIN_PASSWORD` kalau mau di-generate otomatis pas seed
+- `SSH_HOST_DISPLAY` — **biarkan kosong** (default) supaya auto-detect. Isi manual cuma kalau auto-detect-nya salah pilih IP.
 
 ### 3. Build & jalankan
 
@@ -261,7 +266,7 @@ cp .env.example .env
 Edit `.env`, minimal:
 - `DATABASE_URL` (atau `PGHOST`/`PGUSER`/`PGPASSWORD`/`PGDATABASE` terpisah)
 - `SESSION_SECRET` — random string panjang
-- `SSH_HOST_DISPLAY` — IP internal server kampus
+- `SSH_HOST_DISPLAY` — biarkan kosong buat auto-detect (otomatis pakai `localhost` di WSL, atau scan interface di server Linux biasa). Isi manual cuma kalau hasil auto-detect-nya salah.
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD` — kalau `ADMIN_PASSWORD` dikosongkan, script seed akan generate password random yang aman
 
 ### 4. Jalankan seed (bikin akun admin)
@@ -396,6 +401,33 @@ Buka `/admin/login`, login dengan akun dari hasil `npm run seed`. Halaman admin 
 - **Monitoring resource** (`docker stats` / cAdvisor / Prometheus) buat deteksi anomali (mining, dsb).
 - **HTTPS** via reverse proxy (nginx) kalau dashboard diakses lewat domain internal.
 - **Backup PostgreSQL** berkala (`pg_dump`).
+
+---
+
+## Troubleshooting
+
+### "SSH dari PowerShell/terminal ga bisa connect ke WSL"
+
+Ini biasanya bukan masalah jaringan, tapi **host yang ditampilkan di dashboard salah**. Sebelum ada auto-detect (lihat changelog v4), `SSH_HOST_DISPLAY` di `.env.example` isinya placeholder contoh (`10.0.10.5`) — kalau lupa diganti, dashboard nampilin perintah SSH yang kelihatan valid tapi sebenarnya mengarah ke IP yang ga ada.
+
+**Sejak v4**, biarkan `SSH_HOST_DISPLAY` kosong di `.env` — sistem otomatis:
+- Deteksi kalau jalan di WSL → pakai `localhost` (WSL2 punya fitur bawaan yang auto-forward port apa pun yang listen di WSL ke Windows lewat `localhost`, ga perlu tau IP internal WSL yang berubah-ubah tiap restart)
+- Deteksi kalau di server Linux biasa → scan network interface, ambil IP LAN yang paling masuk akal
+
+Cek log server saat startup, ada baris:
+```
+SSH host mahasiswa  : localhost  [auto-detect (WSL2 localhost forwarding)]
+```
+Kalau hasilnya aneh/salah, override manual di `.env` dengan isi `SSH_HOST_DISPLAY` eksplisit — nilai manual selalu menang.
+
+Kalau host-nya sudah benar tapi tetap ga bisa connect, cek juga:
+- Container mahasiswa beneran udah jalan (`docker ps` di WSL, cari nama `student-<nim>-...`)
+- Docker Engine di WSL beneran aktif (bukan cuma ke-install tapi belum di-start)
+- Windows Firewall ga blokir port yang dipakai (jarang jadi masalah untuk localhost, tapi worth dicek kalau masih gagal)
+
+### "npm install error / native module crash (bcrypt, ssh2, dll)"
+
+Kemungkinan besar project ada di drive Windows (`/mnt/c/...`, `/mnt/e/...`, dst) yang di-mount ke WSL. Native module butuh compile C++ dan filesystem Unix-style yang ga reliable di DrvFs (jembatan WSL↔NTFS). Pindahin project ke filesystem native WSL (`~/projects/...`), install ulang di sana. Detail lengkap ada di riwayat percakapan/commit sebelumnya soal isu ini.
 
 ---
 

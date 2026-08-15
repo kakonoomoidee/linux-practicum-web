@@ -9,11 +9,12 @@ services:
       POSTGRES_DB: ${PGDATABASE:-praktikum_db}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    # Port DB TIDAK di-publish ke host secara default (biar ga bisa diakses dari luar sama sekali,
-    # cukup diakses app lewat internal Docker network). Kalau perlu debug pakai DBeaver/psql dari
-    # host, buka comment baris ini:
-    # ports:
-    #   - "5432:5432"
+    # Port DB cuma di-bind ke loopback (127.0.0.1), BUKAN ke semua interface (0.0.0.0).
+    # Artinya cuma proses yang jalan di mesin/VM yang sama yang bisa connect (termasuk
+    # service "app" karena network_mode-nya "host" - lihat penjelasan di service app).
+    # Ini TETAP AMAN: PostgreSQL tidak reachable dari LAN kampus sama sekali.
+    ports:
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-praktikum_user} -d ${PGDATABASE:-praktikum_db}"]
       interval: 5s
@@ -26,15 +27,31 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # PENTING: "host" networking - app "meminjam" network stack milik HOST/VM secara
+    # langsung (bukan network Docker Compose yang terisolasi). Ini yang memungkinkan
+    # app AUTO-DETECT IP LAN asli si server (lihat src/utils/detectHost.js), tanpa
+    # perlu diisi manual di .env. Konsekuensinya: app connect ke database lewat
+    # "127.0.0.1:5432" (bukan nama service "db"), karena DNS antar-service Docker
+    # Compose cuma jalan di network bridge default, bukan di mode host.
+    #
+    # CATATAN KOMPATIBILITAS: mode ini butuh Docker Engine asli di Linux/WSL2
+    # (bukan Docker Desktop GUI di Windows/Mac, yang virtualisasi network-nya beda).
+    # Kalau kamu pakai Docker Desktop dan auto-detect-nya salah/gagal, isi
+    # SSH_HOST_DISPLAY manual di .env - itu akan selalu menang dibanding auto-detect.
+    network_mode: host
     environment:
       PORT: 3000
       NODE_ENV: production
       SESSION_SECRET: ${SESSION_SECRET:-ganti_ini_dengan_random_string_yang_panjang_dan_rahasia}
-      DATABASE_URL: postgres://${PGUSER:-praktikum_user}:${PGPASSWORD:-ganti_password_ini}@db:5432/${PGDATABASE:-praktikum_db}
+      DATABASE_URL: postgres://${PGUSER:-praktikum_user}:${PGPASSWORD:-ganti_password_ini}@127.0.0.1:5432/${PGDATABASE:-praktikum_db}
       DOCKER_SOCKET: /var/run/docker.sock
       STUDENT_IMAGE: ${STUDENT_IMAGE:-praktikum-linux:latest}
       DOCKER_NETWORK: ${DOCKER_NETWORK:-student-net}
-      SSH_HOST_DISPLAY: ${SSH_HOST_DISPLAY:-10.0.10.5}
+      # Kosong by default -> app auto-detect IP. Isi manual di .env kalau perlu override.
+      SSH_HOST_DISPLAY: ${SSH_HOST_DISPLAY:-}
+      # Diteruskan dari shell host - dipakai app buat tau "ini lagi jalan di WSL atau bukan"
+      # supaya bisa pakai shortcut "localhost" (WSL2 auto-forward port ke Windows).
+      WSL_DISTRO_NAME: ${WSL_DISTRO_NAME:-}
       SSH_PORT_MIN: ${SSH_PORT_MIN:-30000}
       SSH_PORT_MAX: ${SSH_PORT_MAX:-40000}
       CONTAINER_TTL_HOURS: ${CONTAINER_TTL_HOURS:-24}
@@ -48,8 +65,9 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       LOG_LEVEL: ${LOG_LEVEL:-}
       LOG_DIR: /app/logs
-    ports:
-      - "${APP_PORT:-3000}:3000"
+    # Tidak ada "ports:" di sini - dengan network_mode: host, port yang di-listen app
+    # (PORT=3000) otomatis langsung bisa diakses di host lewat http://<ip-host>:3000,
+    # tanpa perlu mapping port manual.
     volumes:
       # WAJIB: ini yang bikin app di dalam container bisa "mengontrol" Docker Engine
       # milik HOST buat spawn container mahasiswa (sibling containers, bukan Docker-in-Docker).

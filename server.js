@@ -117,9 +117,14 @@ async function start() {
     logger.info(`Server jalan di http://localhost:${config.port}`, {
       dashboardMahasiswa: `http://localhost:${config.port}/login`,
       dashboardAdmin: `http://localhost:${config.port}/admin/login`,
+      sshHost: config.ssh.hostDisplay,
+      sshHostSource: config.ssh.hostDisplaySource,
       logLevel: logger.level,
       logDir: process.env.LOG_DIR || 'logs/',
     });
+    if (config.ssh.hostDisplaySource.startsWith('fallback')) {
+      logger.warn('Auto-detect IP gagal total, mahasiswa TIDAK akan bisa SSH pakai host ini. Isi SSH_HOST_DISPLAY manual di .env dengan IP LAN server yang benar.');
+    }
   });
 }
 
