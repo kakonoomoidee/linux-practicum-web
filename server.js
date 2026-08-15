@@ -103,6 +103,11 @@ async function start() {
     console.log(`\n🚀 Server jalan di http://localhost:${config.port}`);
     console.log(`   Dashboard mahasiswa : http://localhost:${config.port}/login`);
     console.log(`   Dashboard admin     : http://localhost:${config.port}/admin/login`);
+    console.log(`   SSH host mahasiswa  : ${config.ssh.hostDisplay}  [${config.ssh.hostDisplaySource}]`);
+    if (config.ssh.hostDisplaySource.startsWith('fallback')) {
+      console.warn(`   ⚠️  Auto-detect IP gagal total, mahasiswa TIDAK akan bisa SSH pakai host ini.`);
+      console.warn(`   ⚠️  Isi SSH_HOST_DISPLAY manual di .env dengan IP LAN server yang benar.`);
+    }
     console.log(`   Pastikan Docker daemon aktif dan image "${config.docker.studentImage}" sudah dibuild.\n`);
   });
 }
