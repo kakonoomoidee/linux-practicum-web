@@ -1,6 +1,6 @@
-# 🚶 Walkthrough: Apa Saja yang Sudah Dibangun
+# 🚶 Walkthrough Fitur
 
-Dokumen ini adalah tur fitur demi fitur dari platform ini — biar gampang inget apa yang udah ada dan di mana letak kodenya kalau mau diubah. Untuk alasan "kenapa" di balik keputusan desain, lihat `about-proyek.md`. Untuk cara menjalankan, lihat `README.md`.
+Dokumen ini memberikan tinjauan sistematis terhadap fitur-fitur yang telah diimplementasikan pada platform, beserta referensi lokasi kode terkait untuk memudahkan navigasi saat melakukan perubahan. Rasional di balik keputusan desain dapat ditemukan pada `about-proyek.md`. Panduan operasional (instalasi, deployment) tersedia pada `README.md`.
 
 ---
 
@@ -8,150 +8,161 @@ Dokumen ini adalah tur fitur demi fitur dari platform ini — biar gampang inget
 
 ### 1.1 Login (`/login`)
 
-- Login pakai **NIM + password**.
-- Password default `12345678` untuk akun yang baru diimpor dari CSV elearning.
-- Ada checkbox **"Ingat saya"** — kalau dicentang, session bertahan 30 hari alih-alih default (session pendek). Berguna untuk mahasiswa yang pakai laptop pribadi, sebaiknya TIDAK dicentang kalau pakai komputer lab bersama.
-- Password field punya tombol **eye/eye-slash** untuk show/hide isi password saat mengetik.
-- Rate-limited: maksimal 10 percobaan login per 15 menit per IP, mencegah brute-force.
+- Autentikasi menggunakan kombinasi **NIM dan password**.
+- Password default `12345678` diberlakukan untuk akun yang baru diimpor dari CSV elearning.
+- Tersedia opsi **"Ingat saya"** — apabila dicentang, sesi diperpanjang hingga 30 hari (default: durasi sesi lebih pendek). Direkomendasikan untuk tidak diaktifkan pada perangkat bersama (laboratorium komputer).
+- Field password dilengkapi kontrol visibilitas (toggle show/hide).
+- Endpoint login menerapkan rate limiting: maksimal 10 percobaan per 15 menit per alamat IP, sebagai mitigasi terhadap serangan brute-force.
 
-**File terkait:** `views/login.ejs`, `public/js/login.js`, `src/controllers/authController.js`, `src/services/authService.js`.
+**Referensi berkas:** `views/login.ejs`, `public/js/login.js`, `src/controllers/authController.js`, `src/services/authService.js`.
 
-### 1.2 Ganti Password Wajib (`/change-password`)
+### 1.2 Penggantian Password Wajib (`/change-password`)
 
-- Muncul otomatis kalau mahasiswa masih pakai password default (`first_login = true` di database).
-- Password baru wajib minimal 8 karakter dan **tidak boleh sama** dengan password default.
-- Semua field password (lama, baru, konfirmasi) punya toggle show/hide.
-- Setelah berhasil, `first_login` di-set `false` dan mahasiswa diarahkan ke dashboard.
+- Ditampilkan secara otomatis apabila mahasiswa masih menggunakan password default (`first_login = true` pada basis data).
+- Password baru wajib memenuhi panjang minimal 8 karakter dan tidak boleh identik dengan password default.
+- Seluruh field password (lama, baru, konfirmasi) dilengkapi kontrol visibilitas.
+- Setelah berhasil, flag `first_login` diubah menjadi `false` dan mahasiswa diarahkan ke dashboard.
 
-**File terkait:** `views/change-password.ejs`, `public/js/change-password.js`, `views/partials/password-field.ejs` (partial reusable untuk toggle).
+**Referensi berkas:** `views/change-password.ejs`, `public/js/change-password.js`, `views/partials/password-field.ejs` (komponen reusable untuk toggle visibilitas).
 
 ### 1.3 Dashboard (`/dashboard`)
 
-Ini halaman utama tempat mahasiswa mengelola container mereka.
+Halaman utama pengelolaan container mahasiswa.
 
-- **Skeleton loading** ditampilkan (dengan animasi pulse) di 3 momen: saat halaman pertama kali memuat status container, saat proses "Buat Container" berlangsung, dan saat proses "Hapus Container" berlangsung. Ini mencegah tampilan terasa "diam/nge-freeze" saat menunggu proses Docker yang bisa memakan beberapa detik.
-- **Buat Container** — kalau belum punya container aktif, tombol ini memicu provisioning container Linux baru. Setelah berhasil, ditampilkan: nama container, perintah SSH siap-pakai (dengan tombol copy), username, **password (cuma ditampilkan sekali di sini, tidak bisa dilihat lagi setelahnya)**, waktu dibuat, dan waktu kadaluarsa.
-- **Hapus Container** — mahasiswa bisa hapus container mereka sendiri kapan saja, tidak perlu menunggu TTL habis.
-- Logout tersedia di pojok kanan atas.
+- **Skeleton loading** ditampilkan pada tiga kondisi: pemuatan status container awal, proses pembuatan container, dan proses penghapusan container — mengurangi persepsi "diam" pada antarmuka selama proses Docker berlangsung (dapat memakan waktu beberapa detik).
+- **Pembuatan container** — memicu provisioning container Linux baru apabila mahasiswa belum memiliki instance aktif. Setelah berhasil, sistem menampilkan nama container, perintah SSH siap pakai (dengan fungsi copy-to-clipboard), username, **password (ditampilkan satu kali, tidak dapat diakses kembali setelahnya)**, waktu pembuatan, dan waktu kedaluwarsa.
+- **Penghapusan container** — mahasiswa dapat menghapus container mereka sendiri kapan saja tanpa perlu menunggu TTL habis.
+- Fungsi logout tersedia pada bagian kanan atas antarmuka.
 
-**File terkait:** `views/dashboard.ejs`, `public/js/dashboard.js`, `src/controllers/containerController.js`, `src/services/containerService.js`.
+**Referensi berkas:** `views/dashboard.ejs`, `public/js/dashboard.js`, `src/controllers/containerController.js`, `src/services/containerService.js`.
 
 ---
 
-## 2. Alur Admin
+## 2. Alur Administrator
 
 ### 2.1 Login Admin (`/admin/login`)
 
-- Terpisah total dari login mahasiswa — tabel `admins` sendiri di database.
-- Dibuat lewat `npm run seed`, bukan lewat form pendaftaran (memang disengaja, admin bukan self-service).
+- Sepenuhnya terpisah dari sistem login mahasiswa, menggunakan tabel `admins` tersendiri pada basis data.
+- Akun dibuat melalui `npm run seed`, bukan melalui form pendaftaran — desain ini disengaja karena akun admin bukan bersifat self-service.
 
 ### 2.2 Dashboard Admin (`/admin`)
 
-- **Summary cards**: total mahasiswa terdaftar, jumlah instance yang sedang aktif, total container yang pernah dibuat sepanjang waktu, jumlah login dalam 24 jam terakhir.
-- **Tabel instance yang sedang berjalan**: NIM, nama mahasiswa, nama container, perintah SSH, waktu dibuat, waktu kadaluarsa, dan tombol **Hapus** untuk force-destroy tanpa perlu masuk ke database secara manual.
-- **Tabel statistik pemakaian per mahasiswa**: total login, total container yang pernah dibuat, status aktif/tidak, dan kapan terakhir kali membuat container — berguna untuk melihat siapa yang benar-benar memakai platform ini dan siapa yang belum sama sekali.
+- **Ringkasan statistik**: total mahasiswa terdaftar, jumlah instance aktif, total container yang pernah dibuat sepanjang waktu, jumlah login dalam 24 jam terakhir.
+- **Tabel instance aktif**: NIM, nama mahasiswa, nama container, perintah SSH, waktu pembuatan, waktu kedaluwarsa, dan opsi force-delete tanpa memerlukan akses langsung ke basis data.
+- **Tabel statistik penggunaan per mahasiswa**: total login, total container yang pernah dibuat, status aktif, dan waktu pembuatan container terakhir — memberikan visibilitas terhadap tingkat adopsi platform di kalangan mahasiswa.
 
-**File terkait:** `views/admin/dashboard.ejs`, `src/controllers/adminController.js`, `src/services/adminService.js`, query gabungan ada di `src/repositories/containerRepository.js` (`findAllRunningWithStudent`, `getUsageStatsPerStudent`, `getSummaryStats`).
+**Referensi berkas:** `views/admin/dashboard.ejs`, `src/controllers/adminController.js`, `src/services/adminService.js`; query gabungan terdapat pada `src/repositories/containerRepository.js` (`findAllRunningWithStudent`, `getUsageStatsPerStudent`, `getSummaryStats`).
+
+### 2.3 Log Viewer (`/admin/logs`)
+
+- Menampilkan log aplikasi langsung pada antarmuka admin, tanpa memerlukan akses terminal ke server.
+- Filter tersedia berdasarkan level log (`error`, `warn`, `info`, `http`, `debug`), kata kunci pencarian bebas (NIM, pesan, nama event, request ID), dan jumlah baris yang ditampilkan (100–1000).
+- Membaca maksimal tiga file log terakhir per kategori (kombinasi seluruh level, atau khusus error) untuk menjaga performa.
+
+**Referensi berkas:** `views/admin/logs.ejs`, `src/services/logService.js`, `src/controllers/adminController.js` (fungsi `logsPage`).
 
 ---
 
-## 3. Provisioning Container (Inti Sistem)
+## 3. Provisioning Container
 
-Ini bagian paling kompleks dari sistem, ada di `src/services/containerService.js` dan `src/services/dockerService.js`.
+Komponen inti sistem, terletak pada `src/services/containerService.js` dan `src/services/dockerService.js`.
 
-### 3.1 Apa yang terjadi saat mahasiswa klik "Buat Container"
+### 3.1 Alur Pembuatan Container
 
-1. Sistem cek: apakah mahasiswa ini sudah punya container berstatus `running` di database?
-2. **Kalau ada** → sistem verifikasi LANGSUNG ke Docker Engine, apakah container itu beneran masih hidup:
-   - Masih hidup → ditolak dengan pesan jelas.
-   - **Sudah tidak ada di Docker** (dihapus manual, crash, dll) → record lama otomatis ditandai `destroyed`, mahasiswa langsung bisa lanjut. Ini fitur **self-healing** (lihat `about-proyek.md` untuk detail kenapa ini penting).
-   - Docker Engine tidak bisa dihubungi sama sekali → sistem **tidak** menghapus record apa pun (mencegah kesalahan), kasih pesan error yang jelas.
-3. Container baru dibuat di Docker dengan:
+1. Sistem memeriksa apakah mahasiswa terkait sudah memiliki container berstatus `running` pada basis data.
+2. **Apabila ditemukan**, sistem melakukan verifikasi langsung ke Docker Engine untuk memastikan status aktual:
+   - Container masih berjalan → permintaan ditolak dengan pesan yang informatif.
+   - Container sudah tidak ada di Docker Engine (dihapus manual, crash, dsb.) → record lama otomatis ditandai `destroyed`, mahasiswa dapat langsung melanjutkan. Mekanisme ini disebut **self-healing** (lihat `about-proyek.md` untuk rasional lengkap).
+   - Docker Engine tidak dapat dihubungi sama sekali → sistem **tidak** menghapus record apa pun (mencegah kesalahan data), dan mengembalikan pesan error yang jelas.
+3. Container baru dibuat pada Docker Engine dengan konfigurasi:
    - Base image `praktikum-linux:latest` (dibangun dari `docker/Dockerfile.student`)
-   - Port SSH acak dari range yang ditentukan (`SSH_PORT_MIN`–`SSH_PORT_MAX`)
+   - Port SSH acak dari rentang yang ditentukan (`SSH_PORT_MIN`–`SSH_PORT_MAX`)
    - Password Linux acak (10 karakter)
-   - Resource limit: memory, CPU, disk quota, `PidsLimit: 256` (anti fork-bomb)
-   - Network terisolasi (`enable_icc=false`) sehingga tidak bisa akses container mahasiswa lain
-4. Kalau container berhasil dibuat di Docker tapi **gagal disimpan ke database**, sistem otomatis **rollback**: container yang baru dibuat langsung dihapus lagi dari Docker, supaya tidak ada container "orphan" yang jalan tanpa tercatat.
+   - Resource limit: memory, CPU, disk quota, `PidsLimit: 256` (mitigasi fork-bomb)
+   - Isolasi jaringan (`enable_icc=false`) sehingga tidak dapat mengakses container mahasiswa lain
+4. Apabila container berhasil dibuat pada Docker Engine namun **gagal disimpan ke basis data**, sistem melakukan **rollback otomatis**: container yang baru dibuat langsung dihapus kembali, mencegah munculnya container "orphan" yang berjalan tanpa tercatat.
 
-### 3.2 Auto-cleanup (TTL)
+### 3.2 Pembersihan Otomatis (TTL)
 
-- Cron job (`src/cron/cleanupJob.js`) berjalan tiap 10 menit (bisa diatur lewat `CLEANUP_CRON_PATTERN`), mencari semua container yang `expires_at`-nya sudah lewat, lalu menghapusnya dari Docker dan menandai `destroyed` di database.
-- Kalau penghapusan di Docker gagal (misal container sudah tidak ada), status di database tetap ditandai `destroyed` supaya tidak nyangkut selamanya.
+- Cron job (`src/cron/cleanupJob.js`) berjalan setiap 10 menit (dapat diatur melalui `CLEANUP_CRON_PATTERN`), mencari seluruh container yang `expires_at`-nya telah terlampaui, kemudian menghapusnya dari Docker dan menandai `destroyed` pada basis data.
+- Apabila penghapusan pada Docker gagal (misalnya container sudah tidak ada), status pada basis data tetap ditandai `destroyed` untuk mencegah record tersangkut secara permanen.
 
 ### 3.3 Image Container Mahasiswa
 
-- `docker/Dockerfile.student` — Ubuntu 22.04 + `openssh-server` + tools dasar (git, python3, node, build-essential, vim, dll).
-- `docker/entrypoint.sh` — dijalankan saat container start, membuat user `mahasiswa` dengan password dari environment variable (dikirim saat provisioning), memberi akses `sudo` penuh (`NOPASSWD:ALL`), lalu menjalankan `sshd`.
-- Build manual sekali via `scripts/build-image.sh` — ini **beda** dari image `app` (web app-nya sendiri), dan dibangun langsung di host tempat Docker Engine berjalan.
+- `docker/Dockerfile.student` — berbasis Ubuntu 22.04 dengan `openssh-server` dan tools dasar (git, python3, node, build-essential, vim, dsb.).
+- `docker/entrypoint.sh` — dieksekusi saat container start, membuat user `mahasiswa` dengan password dari environment variable (dikirim saat provisioning), memberikan akses `sudo` penuh (`NOPASSWD:ALL`), kemudian menjalankan `sshd`.
+- Dibangun secara terpisah melalui `scripts/build-image.sh` — berbeda dari image `app`, dan dibangun langsung pada host tempat Docker Engine berjalan.
 
 ### 3.4 Auto-Detect Host untuk SSH
 
-`src/utils/detectHost.js` menentukan IP/host yang ditampilkan ke mahasiswa di dashboard, dengan urutan prioritas:
+`src/utils/detectHost.js` menentukan IP/host yang ditampilkan kepada mahasiswa pada dashboard, dengan urutan prioritas:
 
-1. `SSH_HOST_DISPLAY` di `.env` kalau diisi manual → selalu menang.
-2. Kalau kedeteksi jalan di WSL (`WSL_DISTRO_NAME` ada) → pakai `localhost` (WSL2 auto-forward port ke Windows).
-3. Kalau server Linux biasa → scan network interface, ambil IPv4 LAN yang paling masuk akal.
-4. Fallback `127.0.0.1` kalau semua gagal, dengan warning jelas di log server.
+1. `SSH_HOST_DISPLAY` pada `.env` — apabila diisi manual, senantiasa diprioritaskan.
+2. Deteksi lingkungan WSL (variabel `WSL_DISTRO_NAME` tersedia) → menggunakan `localhost` (memanfaatkan fitur port forwarding otomatis WSL2 ke Windows).
+3. Server Linux reguler → memindai antarmuka jaringan, memilih alamat IPv4 LAN yang paling sesuai.
+4. Fallback ke `127.0.0.1` apabila seluruh mekanisme di atas gagal, disertai peringatan eksplisit pada log server.
 
-Hasil deteksi dan alasannya di-log jelas saat server startup (`SSH host mahasiswa : <host> [<sumber>]`), jadi admin bisa langsung verifikasi apakah hasilnya sudah benar tanpa perlu baca kode.
+Hasil deteksi beserta sumbernya dicatat pada log saat startup server (`SSH host mahasiswa : <host> [<sumber>]`), memungkinkan verifikasi cepat oleh administrator tanpa perlu membaca kode sumber.
 
-**File terkait:** `src/utils/detectHost.js`, `src/config/env.js`, `server.js` (logging saat startup).
+**Referensi berkas:** `src/utils/detectHost.js`, `src/config/env.js`, `server.js` (logging saat startup).
 
 ---
 
-## 4. Infrastruktur & Deployment
+## 4. Infrastruktur dan Deployment
 
 ### 4.1 Docker Compose
 
-- `docker-compose.yml` mendefinisikan 2 service: `app` (web app) dan `db` (PostgreSQL 16).
-- Service `db` port-nya di-bind ke `127.0.0.1` saja (loopback), bukan ke `0.0.0.0` — jadi tetap tidak reachable dari LAN kampus, tapi bisa diakses `app` yang jalan di network host yang sama.
-- Service `app` pakai `network_mode: host` — supaya bisa "melihat" network interface asli milik host (dipakai buat auto-detect IP SSH, lihat bagian 3.4) — dan mount `/var/run/docker.sock` dari host, memungkinkan app "mengontrol" Docker Engine host untuk membuat container mahasiswa (pola *sibling containers*).
-- `Dockerfile` untuk `app` pakai multi-stage build: stage pertama install dependency dengan compiler (buat native module seperti `bcrypt`), stage kedua cuma bawa hasil `node_modules` tanpa compiler (image lebih kecil).
+- `docker-compose.yml` mendefinisikan dua service: `app` (aplikasi web) dan `db` (PostgreSQL 16).
+- Port service `db` di-bind hanya ke `127.0.0.1` (loopback), bukan ke `0.0.0.0` — tetap tidak dapat diakses dari LAN kampus, namun dapat diakses oleh `app` yang berjalan pada network host yang sama. Port sisi host dapat dikonfigurasi melalui `DB_HOST_PORT` (default `5433`) untuk menghindari konflik dengan instance PostgreSQL lain.
+- Service `app` menggunakan `network_mode: host` — memungkinkan aplikasi mengenali antarmuka jaringan asli milik host (digunakan untuk auto-detect IP SSH, lihat bagian 3.4) — dan memasang `/var/run/docker.sock` dari host, memungkinkan `app` mengendalikan Docker Engine host untuk provisioning container mahasiswa (pola *sibling containers*).
+- `Dockerfile` untuk `app` menggunakan multi-stage build: tahap pertama melakukan instalasi dependency dengan compiler (untuk native module seperti `bcrypt`), tahap kedua hanya membawa hasil `node_modules` tanpa compiler, menghasilkan image yang lebih ringkas.
+- Seluruh konfigurasi pada `docker-compose.yml` bersumber dari environment variable dengan default yang aman — tidak terdapat nilai hardcoded.
 
-### 4.2 Database
+### 4.2 Basis Data
 
-- Schema didefinisikan di `src/db/schema.sql`, dijalankan otomatis (idempotent, `CREATE TABLE IF NOT EXISTS`) setiap kali app start — jadi tidak perlu migration tool terpisah.
-- Server melakukan **retry otomatis** kalau koneksi ke database gagal saat startup (berguna untuk kondisi race saat `docker compose up` pertama kali, sebelum PostgreSQL benar-benar siap).
-- Session (login) disimpan di tabel `session` PostgreSQL (via `connect-pg-simple`), bukan in-memory — jadi session tidak hilang saat app di-restart, dan tidak menyebabkan memory leak.
+- Skema didefinisikan pada `src/db/schema.sql`, dieksekusi otomatis (idempotent, `CREATE TABLE IF NOT EXISTS`) setiap kali aplikasi start — menghilangkan kebutuhan tool migrasi terpisah.
+- Server menerapkan mekanisme **retry otomatis** apabila koneksi ke basis data gagal saat startup (relevan untuk kondisi race pada eksekusi pertama `docker compose up`, sebelum PostgreSQL sepenuhnya siap menerima koneksi).
+- Sesi (login) disimpan pada tabel `session` PostgreSQL (melalui `connect-pg-simple`), bukan in-memory — mencegah kehilangan sesi saat aplikasi di-restart dan menghindari risiko memory leak.
 
-### 4.3 Seed & Import Data
+### 4.3 Seeding dan Import Data
 
-- `scripts/seed.js` — membuat akun admin pertama kali. **Aman dijalankan berkali-kali**: kalau akun admin sudah ada, tidak akan ditimpa. Kalau `ADMIN_PASSWORD` di `.env` dikosongkan, password di-generate acak (16 karakter, aman) dan ditampilkan **satu kali saja** di terminal.
-- `scripts/import-students.js` — import daftar mahasiswa dari CSV (`nim,nama`) hasil export elearning. NIM yang sudah ada di-skip (tidak menimpa password yang sudah diganti mahasiswa), jadi aman dijalankan ulang tiap semester untuk kelas baru.
+- `scripts/seed.js` — membuat akun admin pada eksekusi pertama. Aman dijalankan berulang kali: akun admin yang sudah ada tidak akan ditimpa. Apabila `ADMIN_PASSWORD` pada `.env` dikosongkan, password digenerate secara acak (16 karakter) dan hanya ditampilkan satu kali pada terminal.
+- `scripts/import-students.js` — mengimpor daftar mahasiswa dari CSV (`nim,nama`) hasil ekspor elearning. NIM yang sudah terdaftar akan dilewati (tidak menimpa password yang sudah diganti mahasiswa), sehingga aman dijalankan ulang setiap semester untuk kelas baru.
 
-### 4.4 Logging & Monitoring
+### 4.4 Logging dan Monitoring
 
-- **`src/config/logger.js`** — instance Winston terpusat, dipakai di seluruh layer (services, controllers, cron, db). Format JSON buat file & console production, format berwarna enak dibaca buat console development.
-- **`src/middleware/requestLogger.js`** — log setiap HTTP request masuk (method, path, status, durasi, IP, NIM), dengan `requestId` unik per request (juga dikirim balik lewat header `X-Request-Id`) buat memudahkan tracing kalau ada laporan error.
-- File log tersimpan di `logs/`, dipisah jadi `error-YYYY-MM-DD.log` (cuma level error) dan `combined-YYYY-MM-DD.log` (semua level), rotasi harian otomatis, disimpan 14 hari.
-- Di Docker Compose, folder `logs/` di-mount sebagai volume (`./logs:/app/logs`) — jadi log persist walau container di-restart/rebuild, dan bisa langsung di-`tail` dari host tanpa masuk ke dalam container.
-- Log penting punya field `event` yang konsisten (`container_created`, `container_self_heal`, `container_rollback`, `container_orphan_warning`, `admin_login_success`, `student_login_failed`, dst) — memudahkan filter/grep, dan siap di-pipe ke tool monitoring beneran (ELK, Grafana Loki, dll) kalau nanti dibutuhkan karena formatnya sudah JSON terstruktur.
-- Semua `console.log`/`console.error` yang sebelumnya tersebar di berbagai file sudah dimigrasikan ke logger ini — konsisten satu titik konfigurasi buat semua output log aplikasi.
+- **`src/config/logger.js`** — instance Winston terpusat, digunakan pada seluruh layer aplikasi (services, controllers, cron, db). Format JSON untuk file dan console produksi; format berwarna untuk console pengembangan.
+- **`src/middleware/requestLogger.js`** — mencatat setiap HTTP request yang masuk (method, path, status, durasi, IP, NIM), dengan `requestId` unik per request (dikembalikan melalui header `X-Request-Id`) untuk mempermudah tracing pada laporan error.
+- **`src/services/logService.js`** — membaca dan mem-parsing file log untuk keperluan log viewer pada admin panel, dengan dukungan filter level, pencarian, dan pembatasan jumlah baris.
+- File log tersimpan pada `logs/`, terpisah menjadi `error-YYYY-MM-DD.log` (khusus level error) dan `combined-YYYY-MM-DD.log` (seluruh level), dengan rotasi harian otomatis dan retensi 14 hari.
+- Pada Docker Compose, direktori `logs/` dipasang sebagai volume (`./logs:/app/logs`) — log tetap persisten meskipun container di-restart/rebuild, dan dapat diakses langsung (`tail`) dari host tanpa perlu masuk ke dalam container.
+- Log signifikan memiliki field `event` yang konsisten (`container_created`, `container_self_heal`, `container_rollback`, `container_orphan_warning`, `admin_login_success`, `student_login_failed`, dsb.) — memudahkan proses filtering dan siap diintegrasikan dengan tooling monitoring (ELK, Grafana Loki, dsb.) karena format JSON yang konsisten.
+- Seluruh pemanggilan `console.log`/`console.error` yang sebelumnya tersebar pada berbagai berkas telah dimigrasikan ke logger terpusat ini.
 
-**File terkait:** `src/config/logger.js`, `src/middleware/requestLogger.js`, lihat juga README bagian "Monitoring & Logs" untuk cara pakai sehari-hari.
+**Referensi berkas:** `src/config/logger.js`, `src/middleware/requestLogger.js`, `src/services/logService.js`. Lihat juga README bagian "Monitoring dan Logging" untuk panduan penggunaan sehari-hari.
 
 ---
 
-## 5. Keamanan yang Sudah Diterapkan
+## 5. Kebijakan Keamanan yang Diterapkan
 
-Ringkasan (detail lengkap ada di README bagian "Keamanan yang diterapkan"):
+Ringkasan (detail lengkap tersedia pada README bagian "Kebijakan Keamanan"):
 
-- Password web & Linux di-hash `bcrypt`, tidak pernah disimpan plaintext.
-- Session `httpOnly` cookie, disimpan di PostgreSQL.
-- Rate limiting login (mahasiswa & admin).
+- Password web dan Linux di-hash menggunakan `bcrypt`, tidak pernah disimpan dalam bentuk plaintext.
+- Sesi menggunakan cookie `httpOnly`, disimpan pada PostgreSQL.
+- Rate limiting pada endpoint login (mahasiswa dan admin).
 - Container: `CapDrop: ALL`, capability minimal, `PidsLimit`, resource limit, `no-new-privileges`.
-- Network container terisolasi antar mahasiswa.
-- Akses platform dibatasi ke jaringan kampus (bukan expose ke internet publik) — dikonfigurasi di level firewall kampus, di luar kode aplikasi ini.
+- Isolasi jaringan antar-container mahasiswa.
+- Akses platform dibatasi ke jaringan kampus (tidak diekspos ke internet publik) — dikonfigurasi pada level firewall kampus, di luar cakupan kode aplikasi ini.
+- Pengaturan `trust proxy` menggunakan nilai eksplisit (`TRUST_PROXY_HOPS`) untuk mencegah risiko spoofing header IP pada mekanisme rate limiting.
 
 ---
 
-## 6. Yang Belum Dikerjakan / Perlu Setup Manual di Luar Kode
+## 6. Cakupan di Luar Kode / Belum Diimplementasikan
 
-- Firewall kampus (allow port dashboard & range SSH hanya dari subnet kampus).
-- Rate-limit outbound traffic per container (`tc`/`iptables`).
-- Monitoring resource untuk deteksi anomali (mining, dll).
-- HTTPS via reverse proxy kalau nanti diakses lewat domain internal.
+- Konfigurasi firewall kampus (pembatasan akses port dashboard dan rentang port SSH hanya dari subnet kampus).
+- Rate-limiting outbound traffic per container (`tc`/`iptables`).
+- Monitoring resource untuk deteksi anomali penggunaan (mis. cryptomining).
+- HTTPS melalui reverse proxy apabila diakses melalui domain internal.
 - Backup PostgreSQL berkala.
 
-Lihat bagian "Roadmap" di `about-proyek.md` untuk ide pengembangan yang belum dikerjakan.
+Lihat bagian "Roadmap" pada `about-proyek.md` untuk gagasan pengembangan lanjutan yang belum diimplementasikan.

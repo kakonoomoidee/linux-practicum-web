@@ -16,6 +16,7 @@ router.get('/login', redirectIfAdminLoggedIn, adminController.loginPage);
 router.post('/login', loginLimiter, adminController.login);
 router.post('/logout', requireAdmin, adminController.logout);
 router.get('/', requireAdmin, adminController.dashboard);
+router.get('/logs', requireAdmin, adminController.logsPage);
 router.post('/instances/:id/destroy', requireAdmin, adminController.destroyInstance);
 
 module.exports = router;

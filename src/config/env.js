@@ -1,12 +1,14 @@
 require('dotenv').config();
+const path = require('path');
 const { detectHost } = require('../utils/detectHost');
 
 const detectedHost = detectHost();
+const nodeEnv = process.env.NODE_ENV || 'development';
 
 module.exports = {
   port: process.env.PORT || 3000,
   sessionSecret: process.env.SESSION_SECRET || 'ganti_secret_ini',
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv,
 
   db: {
     connectionString: process.env.DATABASE_URL || undefined,
@@ -49,5 +51,10 @@ module.exports = {
 
   cron: {
     cleanupPattern: process.env.CLEANUP_CRON_PATTERN || '*/10 * * * *',
+  },
+
+  log: {
+    dir: process.env.LOG_DIR || path.join(__dirname, '..', '..', 'logs'),
+    level: process.env.LOG_LEVEL || (nodeEnv === 'production' ? 'info' : 'debug'),
   },
 };

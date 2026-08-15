@@ -1,120 +1,128 @@
 # 📖 Tentang Proyek: Praktikum Linux — Container On-Demand
 
-Dokumen ini adalah **source of truth** buat proyek ini — kenapa proyek ini dibikin, keputusan teknis apa aja yang diambil dan alasannya, serta batasan yang disengaja. Kalau ada pertanyaan "kenapa X dibikin gini bukan gitu", jawabannya harusnya ada di sini.
+Dokumen ini berfungsi sebagai **source of truth** untuk proyek ini — mencakup latar belakang, keputusan teknis yang diambil beserta rasionalnya, serta batasan yang ditetapkan secara sengaja. Pertanyaan seputar "mengapa keputusan X diambil, bukan alternatif Y" seharusnya terjawab melalui dokumen ini.
 
 ---
 
 ## Latar Belakang
 
-Mahasiswa di kelas praktikum Linux (jaringan/TI) sering kesulitan setup environment Linux sendiri:
-- Laptop dengan spek rendah ("kentang") sering ga kuat / ga bisa jalanin WSL2 atau VM lokal (VirtualBox, dll) — butuh virtualization di BIOS yang kadang ga aktif atau ga didukung.
-- Install WSL2 + distro Linux itu berat dari sisi storage dan bandwidth buat mahasiswa dengan koneksi internet terbatas.
-- Environment yang beda-beda antar laptop mahasiswa bikin masalah "di laptop saya kerja, di laptop teman saya error" yang menyita waktu praktikum.
+Mahasiswa pada mata kuliah praktikum Linux (jaringan/TI) kerap menghadapi kendala dalam menyiapkan lingkungan Linux secara mandiri:
+- Perangkat dengan spesifikasi terbatas sering tidak mampu atau tidak dapat menjalankan WSL2 maupun virtual machine lokal (VirtualBox, dsb.) — memerlukan fitur virtualisasi pada BIOS yang terkadang tidak aktif atau tidak didukung.
+- Instalasi WSL2 beserta distribusi Linux memerlukan kapasitas penyimpanan dan bandwidth yang signifikan, menjadi kendala bagi mahasiswa dengan koneksi internet terbatas.
+- Perbedaan lingkungan antar perangkat mahasiswa menimbulkan masalah inkonsistensi ("berfungsi pada perangkat saya, namun tidak pada perangkat lain") yang menyita waktu praktikum.
 
-**Solusinya:** mahasiswa cukup buka browser dari jaringan kampus, klik "Buat Container", dan dapat akses SSH ke Linux environment yang seragam untuk semua orang — tanpa install apa pun di laptop mereka selain terminal bawaan OS.
+**Pendekatan penyelesaian:** mahasiswa cukup mengakses browser dari jaringan kampus, melakukan provisioning container melalui satu klik, dan memperoleh akses SSH ke lingkungan Linux yang seragam bagi seluruh peserta — tanpa instalasi perangkat lunak tambahan pada perangkat masing-masing, selain terminal bawaan sistem operasi.
 
 ---
 
 ## Tujuan Proyek
 
-1. Mahasiswa bisa "minjem" container Linux penuh (akses `sudo`, bisa install apa saja) dari browser, tanpa instalasi lokal.
-2. Environment seragam untuk semua mahasiswa — mengurangi masalah "works on my machine".
-3. Self-service — mahasiswa ga perlu nunggu asisten dosen buat provisioning manual.
-4. Aman buat dijalankan di server kampus tanpa membahayakan sistem lain di jaringan yang sama.
+1. Menyediakan akses container Linux penuh (termasuk akses `sudo`) melalui browser, tanpa instalasi lokal.
+2. Memastikan lingkungan kerja yang seragam bagi seluruh mahasiswa, mengurangi masalah inkonsistensi lingkungan.
+3. Mendukung model self-service — mahasiswa tidak perlu menunggu provisioning manual dari asisten dosen.
+4. Menjamin keamanan operasional pada server kampus tanpa membahayakan sistem lain pada jaringan yang sama.
 
-## Yang BUKAN Tujuan Proyek Ini (Batasan yang Disengaja)
+## Batasan yang Ditetapkan Secara Sengaja
 
-- **Bukan** pengganti VPS/cloud publik — didesain khusus buat diakses dari jaringan kampus, bukan dari internet umum.
-- **Bukan** platform multi-tenant skala besar — target penggunanya mahasiswa satu jurusan/kelas, bukan ribuan orang sekaligus.
-- **Bukan** sandbox yang 100% tahan dari penyalahgunaan disengaja — mahasiswa punya akses `sudo` penuh di dalam container mereka, jadi proyek ini mengandalkan **isolasi di level infrastruktur** (network, resource limit), bukan restriksi command di dalam container.
+- **Bukan** pengganti VPS atau layanan cloud publik — dirancang khusus untuk diakses dari jaringan kampus, bukan dari internet umum.
+- **Bukan** platform multi-tenant berskala besar — target pengguna adalah mahasiswa pada satu jurusan/kelas, bukan ribuan pengguna simultan.
+- **Bukan** sandbox yang sepenuhnya tahan terhadap penyalahgunaan yang disengaja — mahasiswa memperoleh akses `sudo` penuh di dalam container mereka, sehingga proyek ini mengandalkan **isolasi pada level infrastruktur** (jaringan, resource limit), bukan pembatasan perintah di dalam container.
 
 ---
 
-## Keputusan Teknis & Alasannya
+## Keputusan Teknis dan Rasional
 
-### Kenapa akses dibatasi hanya dari jaringan kampus (bukan VPN/public internet)?
+### Pembatasan Akses ke Jaringan Kampus (Bukan VPN/Internet Publik)
 
-Kampus (UMY) belum/tidak menyediakan VPN untuk mahasiswa. Daripada expose port SSH ke internet publik (risiko keamanan besar — bot scanning port SSH itu masif dan terus-menerus), platform ini didesain untuk **hanya reachable dari LAN/WiFi kampus**. Trade-off-nya: mahasiswa ga bisa praktikum dari rumah/kost, harus di kampus. Ini keputusan sadar demi keamanan, bukan keterbatasan teknis yang belum sempat diperbaiki.
+Kampus (UMY) belum menyediakan layanan VPN bagi mahasiswa. Alih-alih mengekspos port SSH ke internet publik — yang membawa risiko keamanan signifikan mengingat aktivitas scanning port SSH oleh bot bersifat masif dan berkelanjutan — platform ini dirancang untuk **hanya dapat diakses dari LAN/WiFi kampus**. Konsekuensinya, mahasiswa perlu berada di lingkungan kampus untuk mengakses platform; hal ini merupakan keputusan yang diambil secara sadar demi keamanan, bukan keterbatasan teknis yang belum tertangani.
 
-### Kenapa container di-set TTL 24 jam (auto-hapus)?
+### TTL Container 24 Jam (Penghapusan Otomatis)
 
-Supaya resource server ga habis dimakan container yang lupa dihapus mahasiswa. Ini juga mendorong mahasiswa buat push/simpan pekerjaan mereka ke tempat lain (git, dsb) daripada menyimpan semuanya cuma di container sementara.
+Kebijakan ini mencegah resource server terkuras oleh container yang tidak dihapus mahasiswa, sekaligus mendorong mahasiswa untuk menyimpan hasil kerja pada media persisten (git, dsb.) alih-alih mengandalkan penyimpanan pada container yang bersifat sementara.
 
-### Kenapa 1 container per mahasiswa?
+### Batasan 1 Container per Mahasiswa
 
-Sederhana buat dikelola dan mencegah satu mahasiswa memonopoli resource server dengan bikin banyak container sekaligus. Bisa diubah lewat `MAX_CONTAINER_PER_STUDENT` di `.env` kalau kebutuhannya berubah.
+Pendekatan ini menyederhanakan pengelolaan sistem dan mencegah satu mahasiswa memonopoli resource server melalui pembuatan container secara berlebihan. Nilai batasan dapat disesuaikan melalui variabel `MAX_CONTAINER_PER_STUDENT` pada `.env` apabila kebutuhan berubah.
 
-### Kenapa mahasiswa dapat akses `sudo` penuh di dalam container?
+### Akses `sudo` Penuh bagi Mahasiswa
 
-Tujuan praktikumnya memang belajar administrasi Linux — install package, konfigurasi service, dll. Membatasi `sudo` akan menghilangkan poin utama pembelajarannya. Sebagai gantinya, **isolasi dilakukan di level infrastruktur**:
-- `CapDrop: ALL` + capability minimal (bukan container `--privileged`)
-- `PidsLimit: 256` (cegah fork bomb menghabiskan resource host)
+Tujuan pembelajaran praktikum mencakup administrasi sistem Linux — instalasi package, konfigurasi service, dsb. Pembatasan akses `sudo` akan menghilangkan esensi pembelajaran tersebut. Sebagai gantinya, **isolasi diterapkan pada level infrastruktur**:
+- `CapDrop: ALL` dengan capability minimal (bukan mode `--privileged`)
+- `PidsLimit: 256` (mitigasi terhadap fork bomb yang dapat menghabiskan resource host)
 - Resource limit (memory, CPU, disk quota) per container
-- Network terisolasi antar container (`enable_icc=false`) — mahasiswa A tidak bisa menyerang container mahasiswa B
-- `no-new-privileges` security flag aktif
+- Isolasi jaringan antar-container (`enable_icc=false`) — mencegah satu mahasiswa mengakses container mahasiswa lain
+- Flag keamanan `no-new-privileges` diaktifkan
 
-### Kenapa autentikasi pakai NIM + password default, bukan SSO kampus?
+### Autentikasi Berbasis NIM + Password Default (Bukan SSO Kampus)
 
-Integrasi SSO kampus (SIM/portal UMY) butuh koordinasi dengan pihak IT kampus yang di luar kendali proyek ini di tahap awal. Solusi sementara: import daftar NIM+nama dari export CSV elearning (Moodle), password default `12345678`, **wajib diganti** di login pertama sebelum bisa akses fitur apa pun. Ini pola yang familier untuk banyak sistem kampus (mirip aktivasi akun baru).
+Integrasi dengan sistem SSO kampus (SIM/portal UMY) memerlukan koordinasi dengan pihak IT kampus yang berada di luar kendali proyek pada tahap awal pengembangan. Sebagai solusi sementara: daftar NIM dan nama diimpor dari hasil ekspor CSV elearning (Moodle), dengan password default `12345678` yang **wajib diganti** pada login pertama sebelum akses fitur lain diizinkan. Pola ini umum dijumpai pada berbagai sistem kampus, menyerupai mekanisme aktivasi akun baru.
 
-### Kenapa arsitektur Docker-nya "sibling containers" (bukan Docker-in-Docker beneran)?
+### Arsitektur Docker "Sibling Containers" (Bukan Docker-in-Docker)
 
-Container `app` di-mount Docker socket host (`/var/run/docker.sock`), bukan menjalankan Docker daemon terpisah di dalam dirinya sendiri (true DinD). Alasan:
-- Docker-in-Docker beneran itu kompleks, sering bermasalah dengan storage driver, dan butuh privileged mode yang justru lebih riskan.
-- Pola "sibling" (app numpang ke Docker Engine host) lebih stabil dan merupakan pattern yang umum dipakai untuk aplikasi yang perlu mengorkestrasi container lain (mirip cara kerja Portainer, dsb).
-- Konsekuensinya: container mahasiswa yang dibuat itu jadi *sibling* dari container `app`, portnya di-bind langsung ke host — makanya `SSH_HOST_DISPLAY` tetap harus IP LAN server, bukan nama service Docker Compose.
+Container `app` memasang Docker socket milik host (`/var/run/docker.sock`), bukan menjalankan Docker daemon terpisah di dalam dirinya (true Docker-in-Docker). Rasional:
+- Docker-in-Docker sesungguhnya bersifat kompleks, rentan terhadap masalah storage driver, dan memerlukan mode privileged yang justru meningkatkan risiko keamanan.
+- Pola "sibling" (aplikasi mendelegasikan perintah ke Docker Engine host) lebih stabil dan merupakan pola umum pada aplikasi yang memerlukan orkestrasi container lain (serupa dengan mekanisme kerja Portainer, dsb.).
+- Konsekuensinya, container mahasiswa yang dibuat berkedudukan sebagai *sibling* dari container `app`, dengan port yang di-bind langsung ke host — sehingga `SSH_HOST_DISPLAY` harus merujuk pada IP LAN server, bukan nama service Docker Compose.
 
-### Kenapa PostgreSQL, bukan SQLite (versi awal proyek ini pakai SQLite)?
+### Migrasi ke PostgreSQL (dari SQLite pada Versi Awal)
 
-Versi pertama proyek ini pakai `better-sqlite3`, tapi native module ini rewel banget di WSL kalau project-nya ditaruh di drive Windows (`/mnt/e/...` alih-alih filesystem native WSL) — sering crash pas load karena masalah ABI/filesystem. PostgreSQL lebih robust untuk kebutuhan ini, juga lebih natural untuk dijalankan sebagai service terpisah di Docker Compose, dan skalanya lebih siap kalau nanti dipakai beberapa kelas/mata kuliah sekaligus.
+Implementasi awal menggunakan `better-sqlite3`, namun native module ini menunjukkan ketidakstabilan pada lingkungan WSL apabila proyek ditempatkan pada drive Windows (`/mnt/e/...`, bukan filesystem native WSL) — kerap mengalami crash saat loading akibat masalah ABI/filesystem. PostgreSQL menawarkan stabilitas yang lebih baik untuk kebutuhan ini, lebih sesuai untuk dijalankan sebagai service terpisah pada Docker Compose, dan lebih siap untuk skenario penggunaan pada beberapa kelas/mata kuliah secara simultan di masa mendatang.
 
-### Kenapa "self-healing" container jadi fitur eksplisit?
+### Mekanisme Self-Healing pada Container
 
-Di versi awal, kalau container di Docker dihapus manual/crash tapi record di database masih bilang `'running'`, mahasiswa akan **terus-menerus ditolak** bikin container baru (karena sistem mengira mereka masih punya 1 container aktif) — satu-satunya solusi waktu itu adalah admin hapus row itu manual di database. Ini jelas ga scalable. Solusinya: setiap kali mahasiswa mencoba bikin container baru dan sistem menemukan record lama yang `'running'`, sistem **verifikasi langsung ke Docker Engine** apakah container itu beneran masih hidup. Kalau ternyata sudah tidak ada, record lama otomatis dibersihkan tanpa campur tangan admin. Detail lengkap ada di README bagian "Self-Healing".
+Pada implementasi awal, apabila sebuah container dihapus secara manual atau mengalami crash pada level Docker sementara record pada basis data masih berstatus `'running'`, mahasiswa terkait akan **terus-menerus ditolak** saat mencoba membuat container baru (karena sistem menganggap mereka masih memiliki container aktif) — satu-satunya solusi pada saat itu adalah intervensi manual administrator pada basis data. Pendekatan ini jelas tidak scalable. Solusi yang diterapkan: setiap kali mahasiswa mencoba membuat container baru dan sistem menemukan record lama berstatus `'running'`, sistem melakukan **verifikasi langsung ke Docker Engine** untuk memastikan status aktualnya. Apabila ternyata sudah tidak ada, record lama dibersihkan secara otomatis tanpa keterlibatan administrator. Detail teknis lengkap tersedia pada README bagian "Self-Healing".
 
-### Kenapa SSH_HOST_DISPLAY sekarang auto-detect, bukan diisi manual di .env?
+### Auto-Detect untuk SSH_HOST_DISPLAY (Bukan Konfigurasi Manual)
 
-Versi awal mewajibkan admin isi `SSH_HOST_DISPLAY` manual di `.env`, dengan contoh placeholder `10.0.10.5` di `.env.example`. Masalahnya: kalau admin lupa ganti placeholder itu (atau nilainya salah), dashboard tetap menampilkan perintah SSH yang terlihat valid tapi sebenarnya mengarah ke IP yang tidak ada — mahasiswa (atau developer yang lagi testing) akan bingung kenapa `ssh` gagal terus, padahal semuanya "kelihatan" jalan normal.
+Implementasi awal mewajibkan administrator mengisi `SSH_HOST_DISPLAY` secara manual pada `.env`, dengan nilai placeholder contoh `10.0.10.5` pada `.env.example`. Permasalahannya: apabila administrator lupa mengganti placeholder tersebut (atau nilainya tidak sesuai), dashboard tetap menampilkan perintah SSH yang tampak valid namun sebenarnya merujuk pada IP yang tidak eksis — menimbulkan kebingungan pada mahasiswa maupun pengembang yang sedang melakukan pengujian, karena kegagalan koneksi SSH terjadi meskipun seluruh komponen lain tampak berfungsi normal.
 
-Sekarang default-nya auto-detect (`src/utils/detectHost.js`):
-- Kalau terdeteksi jalan di **WSL** (env var `WSL_DISTRO_NAME` ada) → otomatis pakai `localhost`, memanfaatkan fitur bawaan WSL2 yang auto-forward port ke Windows tanpa perlu tahu IP internal WSL yang berubah-ubah tiap restart.
-- Kalau di **server Linux beneran** → scan network interface, ambil IPv4 non-internal yang paling masuk akal (skip loopback dan interface virtual Docker).
-- Manual override di `.env` **selalu menang** kalau diisi — berguna untuk server dengan banyak network interface di mana auto-detect bisa salah pilih.
+Mekanisme auto-detect (`src/utils/detectHost.js`) diterapkan dengan urutan prioritas sebagai berikut:
+- Deteksi lingkungan **WSL** (variabel environment `WSL_DISTRO_NAME` tersedia) → menggunakan `localhost` secara otomatis, memanfaatkan fitur bawaan WSL2 yang meneruskan port ke Windows tanpa memerlukan pengetahuan mengenai IP internal WSL yang dapat berubah setiap restart.
+- Pada **server Linux** murni → memindai antarmuka jaringan, memilih alamat IPv4 non-internal yang paling sesuai (melewati loopback dan antarmuka virtual Docker).
+- Override manual pada `.env` **senantiasa diprioritaskan** apabila diisi — relevan untuk server dengan banyak antarmuka jaringan di mana auto-detect berpotensi memilih antarmuka yang tidak tepat.
 
-Supaya app bisa "melihat" network interface milik host yang sebenarnya (bukan network internal Docker Compose-nya sendiri), service `app` di `docker-compose.yml` pakai `network_mode: host`. Konsekuensinya, app connect ke database lewat `127.0.0.1:5432` (bukan nama service `db`), karena DNS antar-service Docker Compose cuma jalan di network bridge default. Trade-off ini sepadan karena masalah "SSH gagal karena host salah" jauh lebih sering terjadi dan lebih membingungkan daripada kompleksitas tambahan di `docker-compose.yml`.
+Agar aplikasi dapat mengenali antarmuka jaringan asli milik host (bukan network internal Docker Compose), service `app` pada `docker-compose.yml` menggunakan `network_mode: host`. Konsekuensinya, aplikasi terhubung ke basis data melalui `127.0.0.1` (bukan nama service `db`), karena resolusi DNS antar-service Docker Compose hanya berfungsi pada network bridge default. Trade-off ini dinilai sepadan, mengingat masalah "kegagalan SSH akibat host yang tidak sesuai" jauh lebih sering terjadi dan lebih membingungkan dibandingkan kompleksitas tambahan pada konfigurasi `docker-compose.yml`.
 
-**Catatan kompatibilitas:** `network_mode: host` butuh Docker Engine asli di Linux/WSL2, kurang reliable di Docker Desktop (Windows/Mac) karena virtualisasi networking-nya beda. Untuk kasus itu, isi `SSH_HOST_DISPLAY` manual di `.env`.
+**Catatan kompatibilitas:** `network_mode: host` memerlukan Docker Engine native pada Linux/WSL2, dan kurang konsisten pada Docker Desktop (Windows/Mac) akibat perbedaan virtualisasi jaringan. Untuk kasus tersebut, konfigurasi manual `SSH_HOST_DISPLAY` pada `.env` tetap tersedia sebagai solusi.
 
-### Kenapa EJS (server-rendered), bukan SPA client-side seperti versi awal?
+### EJS Server-Rendered (Bukan SPA Client-Side seperti Versi Awal)
 
-Versi pertama pakai vanilla JS yang nge-swap tampilan halaman di client (`login` → `change-password` → `dashboard` semua dalam satu HTML, disembunyikan/ditampilkan pakai class `hidden`). Ini menyebabkan bug input password ga bisa diketik dengan normal (masalah state management di client yang ga perlu terjadi kalau tiap halaman punya route-nya sendiri). Pindah ke EJS server-rendered per-route menyederhanakan alur dan menghilangkan kelas bug itu sepenuhnya.
+Implementasi awal menggunakan vanilla JavaScript yang melakukan penggantian tampilan pada sisi client (`login` → `change-password` → `dashboard` seluruhnya berada pada satu berkas HTML, disembunyikan/ditampilkan menggunakan class `hidden`). Pendekatan ini menyebabkan bug pada input password yang tidak dapat diketik secara normal — permasalahan terkait state management pada client yang seharusnya tidak terjadi apabila setiap halaman memiliki route tersendiri. Migrasi ke EJS server-rendered per-route menyederhanakan alur aplikasi dan menghilangkan kelas bug tersebut secara menyeluruh.
 
-### Kenapa pakai Winston buat logging, bukan `console.log` biasa?
+### Structured Logging dengan Winston (Bukan `console.log`)
 
-Selama development awal, `console.log`/`console.error` cukup buat debug cepat, tapi begitu platform ini beneran dipakai mahasiswa, itu ga cukup buat monitoring produksi:
-- Ga ada level (semua campur aduk — info, warning, error ga bisa dipisah/di-filter).
-- Ga ada cara gampang buat nelusurin "apa yang terjadi pada request/user tertentu" tanpa scroll manual.
-- Log ilang begitu proses restart (ga ada persistensi), padahal justru pas ada masalah itu yang paling penting buat dilihat riwayatnya.
+Pada tahap pengembangan awal, `console.log`/`console.error` memadai untuk kebutuhan debugging cepat. Namun, seiring platform mulai digunakan oleh mahasiswa secara aktual, pendekatan tersebut tidak lagi memadai untuk kebutuhan monitoring produksi:
+- Tidak terdapat pemisahan level (informasi, peringatan, dan error tercampur tanpa mekanisme filtering).
+- Tidak tersedia cara yang efisien untuk menelusuri kejadian pada request atau pengguna tertentu tanpa pemindaian manual.
+- Log hilang setiap kali proses di-restart (tidak ada persistensi), padahal riwayat log justru paling dibutuhkan pada saat terjadi masalah.
 
-Solusinya pakai **Winston** (paling umum dipakai di ekosistem Node.js) dengan:
-- Level standar (`error`/`warn`/`info`/`http`/`debug`) — bisa atur level minimum yang ditampilkan/disimpan sesuai kebutuhan (misal cuma `warn` ke atas di produksi biar log ga penuh noise).
-- Format JSON terstruktur di file & production console — setiap baris log adalah objek JSON valid dengan field konsisten (`nim`, `event`, `containerName`, dst), siap di-`grep`/filter, atau kalau nanti mau upgrade ke tool monitoring beneran (ELK, Grafana Loki, dst), tinggal pipe log ini tanpa perlu ubah kode aplikasi.
-- File log dengan rotasi otomatis (harian, retensi 14 hari) — log tetap ada meski aplikasi restart, tapi ga numpuk selamanya.
-- `requestId` unik per HTTP request — begitu ada laporan "error pas saya klik X", tinggal `grep` request ID itu di log, langsung ketemu seluruh jejaknya (request masuk → proses di service layer → response keluar), tanpa harus nebak-nebak baris mana yang relevan.
+Solusi yang diterapkan adalah **Winston** (library logging yang umum digunakan pada ekosistem Node.js), dengan karakteristik:
+- Level log standar (`error`/`warn`/`info`/`http`/`debug`) — memungkinkan pengaturan level minimum yang ditampilkan/disimpan sesuai kebutuhan (misalnya hanya `warn` ke atas pada lingkungan produksi untuk mengurangi noise).
+- Format JSON terstruktur pada file dan console produksi — setiap baris log merupakan objek JSON valid dengan field yang konsisten (`nim`, `event`, `containerName`, dsb.), siap untuk keperluan filtering, atau integrasi dengan tooling monitoring (ELK, Grafana Loki, dsb.) tanpa memerlukan perubahan pada kode aplikasi.
+- Rotasi file log otomatis (harian, retensi 14 hari) — log tetap tersedia meskipun aplikasi di-restart, namun tidak menumpuk tanpa batas.
+- `requestId` unik per HTTP request — memungkinkan penelusuran laporan error secara presisi melalui pencarian request ID pada log, mencakup seluruh jejak eksekusi (request masuk → pemrosesan pada service layer → response keluar) tanpa perlu menebak baris log yang relevan.
+
+### Konfigurasi Terpusat Melalui Environment Variable
+
+Seluruh parameter konfigurasi pada `docker-compose.yml` — termasuk port PostgreSQL sisi host, image PostgreSQL yang digunakan, path Docker socket, dan direktori log — bersumber dari environment variable dengan nilai default yang aman, tanpa nilai hardcoded. Pendekatan ini penting khususnya untuk port PostgreSQL: nilai default sengaja ditetapkan `5433` (bukan `5432`, port standar PostgreSQL) karena banyak pengembang telah menjalankan instance PostgreSQL secara lokal pada port default tersebut. Tanpa konfigurasi yang fleksibel, kondisi ini akan menyebabkan kegagalan `docker compose up` akibat konflik port.
+
+### Log Viewer pada Admin Panel
+
+Menyediakan visibilitas terhadap aktivitas sistem bagi administrator tanpa memerlukan akses terminal ke server — relevan mengingat administrator platform ini tidak selalu memiliki akses SSH langsung ke server produksi, atau lebih memilih antarmuka berbasis browser untuk kebutuhan pemantauan rutin. Implementasi membaca langsung dari file log yang sama dengan yang digunakan oleh Winston, sehingga tidak memerlukan infrastruktur logging tambahan (mis. log aggregator terpisah) untuk kasus penggunaan skala proyek ini.
 
 ---
 
 ## Stack Teknologi
 
-| Layer | Teknologi | Alasan Singkat |
+| Layer | Teknologi | Rasional |
 |---|---|---|
-| Backend | Node.js + Express | Familier, ekosistem luas, cocok untuk I/O-bound (banyak panggilan ke Docker API & DB) |
-| Database | PostgreSQL | Robust, native module lebih stabil dibanding SQLite di lingkungan WSL, siap untuk concurrent access |
-| Container Engine | Docker + dockerode | Standar industri, dockerode memberi kontrol penuh dari Node.js tanpa shell out ke CLI |
-| Frontend | EJS (server-rendered) + Tailwind CSS (CDN) | Sederhana, tanpa build step, cukup untuk kebutuhan dashboard yang tidak terlalu interaktif |
-| Auth | express-session + connect-pg-simple + bcrypt | Session disimpan di PostgreSQL (bukan in-memory) supaya tahan restart & tidak leak memory |
-| Logging | Winston | Level standar, format JSON terstruktur, rotasi file otomatis - siap untuk monitoring produksi |
-| Orkestrasi Deployment | Docker Compose | Satu perintah untuk jalankan app + database sekaligus |
+| Backend | Node.js + Express | Ekosistem matang, sesuai untuk beban kerja I/O-bound (komunikasi intensif dengan Docker API dan basis data) |
+| Basis Data | PostgreSQL | Stabilitas tinggi, native module lebih reliable dibandingkan SQLite pada lingkungan WSL, mendukung concurrent access |
+| Container Engine | Docker + dockerode | Standar industri; dockerode menyediakan kontrol penuh dari Node.js tanpa memerlukan shell out ke CLI |
+| Frontend | EJS (server-rendered) + Tailwind CSS (CDN) | Pendekatan sederhana tanpa build step, memadai untuk kebutuhan dashboard yang tidak memerlukan interaktivitas tinggi |
+| Autentikasi | express-session + connect-pg-simple + bcrypt | Sesi disimpan pada PostgreSQL (bukan in-memory), tahan terhadap restart dan tidak menyebabkan memory leak |
+| Logging | Winston | Level log standar, format JSON terstruktur, rotasi file otomatis — siap untuk kebutuhan monitoring produksi |
+| Orkestrasi Deployment | Docker Compose | Deployment aplikasi dan basis data melalui satu perintah |
 
 ---
 
@@ -124,29 +132,30 @@ Solusinya pakai **Winston** (paling umum dipakai di ekosistem Node.js) dengan:
 Routes → Controllers → Services → Repositories → PostgreSQL
 ```
 
-- **Routes**: definisi endpoint dan middleware apa yang jalan di situ.
-- **Controllers**: terima HTTP request, panggil service yang relevan, format response.
-- **Services**: SEMUA logika bisnis ada di sini (validasi, self-healing, rollback transaksi, dsb). Ini layer paling penting untuk dipahami kalau mau nambah fitur.
-- **Repositories**: query database murni, tidak ada logika bisnis sama sekali.
+- **Routes**: definisi endpoint dan middleware yang diterapkan.
+- **Controllers**: menerima HTTP request, memanggil service yang relevan, memformat response.
+- **Services**: seluruh logika bisnis berada pada layer ini (validasi, self-healing, rollback transaksi, dsb.) — layer yang paling penting untuk dipahami saat menambahkan fitur baru.
+- **Repositories**: akses basis data murni, tanpa logika bisnis.
 
-Kenapa dipisah begini? Supaya gampang di-test, gampang diganti (misal ganti database tanpa nyentuh logika bisnis), dan gampang buat orang baru paham "kalau mau ubah X, cari di layer mana".
+Pemisahan ini diterapkan untuk memudahkan pengujian, memudahkan penggantian komponen (misalnya migrasi basis data tanpa menyentuh logika bisnis), dan memudahkan pengembang baru memahami lokasi kode yang relevan untuk perubahan tertentu.
 
-Lihat `WALKTHROUGH.md` untuk tur lengkap fitur-per-fitur yang sudah dibangun.
+Lihat `WALKTHROUGH.md` untuk tinjauan lengkap fitur yang telah diimplementasikan.
 
 ---
 
-## Roadmap / Ide Pengembangan Selanjutnya
+## Roadmap
 
-Ini bukan komitmen, cuma catatan ide yang pernah didiskusikan tapi belum dikerjakan:
+Daftar berikut merupakan gagasan pengembangan yang pernah didiskusikan namun belum diimplementasikan, bukan merupakan komitmen pengembangan:
 
-- [ ] Rate-limit outbound traffic per container (`tc`/`iptables`) untuk jaga-jaga dari penyalahgunaan jaringan (mining, DDoS keluar).
+- [ ] Rate-limiting outbound traffic per container (`tc`/`iptables`) sebagai mitigasi tambahan terhadap penyalahgunaan jaringan (cryptomining, DDoS keluar).
 - [ ] Monitoring resource real-time (`docker stats` / cAdvisor / Prometheus) untuk deteksi anomali otomatis.
-- [ ] Sistem ujian command Linux berbasis Docker-isolated terminal dengan auto-grading (pernah didiskusikan sebagai proyek terpisah, bisa jadi ekstensi dari platform ini).
-- [ ] Integrasi SSO kampus kalau nanti tersedia, menggantikan sistem NIM+password default.
-- [ ] Opsi extend TTL container kalau mahasiswa masih aktif memakainya (saat ini strict 24 jam).
+- [ ] Sistem ujian berbasis command Linux dengan terminal ter-isolasi Docker dan auto-grading (pernah didiskusikan sebagai proyek terpisah, berpotensi menjadi ekstensi dari platform ini).
+- [ ] Integrasi SSO kampus apabila tersedia di masa mendatang, menggantikan sistem NIM dan password default.
+- [ ] Opsi perpanjangan TTL container bagi mahasiswa yang masih aktif menggunakannya (saat ini bersifat strict 24 jam).
+- [ ] Integrasi log viewer dengan tooling monitoring eksternal (ELK, Grafana Loki) apabila skala penggunaan platform meningkat.
 
 ---
 
-## Kontributor & Konteks
+## Kontributor dan Konteks
 
-Proyek ini dikembangkan oleh Rizki Ramadan, mahasiswa Teknologi Informasi UMY yang juga menjabat sebagai asisten dosen untuk mata kuliah PAW (Pengembangan Aplikasi Web) dan PDW (Pemrograman Desain Web), di bawah bimbingan Ir. Asroni, S.T., M.Eng.
+Proyek ini dikembangkan oleh Rizki Ramadan, mahasiswa Program Studi Teknologi Informasi Universitas Muhammadiyah Yogyakarta (UMY), yang juga menjabat sebagai asisten dosen untuk mata kuliah PAW (Pengembangan Aplikasi Web) dan PDW (Pemrograman Desain Web), di bawah bimbingan Ir. Asroni, S.T., M.Eng.

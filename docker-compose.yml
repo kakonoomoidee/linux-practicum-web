@@ -1,7 +1,7 @@
 services:
 
   db:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${PGUSER:-praktikum_user}
@@ -9,12 +9,16 @@ services:
       POSTGRES_DB: ${PGDATABASE:-praktikum_db}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    # Port DB cuma di-bind ke loopback (127.0.0.1), BUKAN ke semua interface (0.0.0.0).
-    # Artinya cuma proses yang jalan di mesin/VM yang sama yang bisa connect (termasuk
-    # service "app" karena network_mode-nya "host" - lihat penjelasan di service app).
-    # Ini TETAP AMAN: PostgreSQL tidak reachable dari LAN kampus sama sekali.
+    # Port host-side WAJIB configurable lewat DB_HOST_PORT - defaultnya sengaja BUKAN
+    # 5432 (default standar PostgreSQL), karena banyak developer sudah punya PostgreSQL
+    # service sendiri jalan di 5432 (baik native maupun service lain), yang bakal bikin
+    # "port is already allocated" kalau dipaksa sama. Default di sini: 5433.
+    #
+    # Port ini cuma di-bind ke loopback (127.0.0.1), BUKAN ke semua interface (0.0.0.0),
+    # jadi cuma proses di mesin/VM yang sama yang bisa connect (termasuk service "app"
+    # karena network_mode-nya "host"). Tetap AMAN - PostgreSQL tidak reachable dari LAN.
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${DB_HOST_PORT:-5433}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-praktikum_user} -d ${PGDATABASE:-praktikum_db}"]
       interval: 5s
@@ -31,8 +35,8 @@ services:
     # langsung (bukan network Docker Compose yang terisolasi). Ini yang memungkinkan
     # app AUTO-DETECT IP LAN asli si server (lihat src/utils/detectHost.js), tanpa
     # perlu diisi manual di .env. Konsekuensinya: app connect ke database lewat
-    # "127.0.0.1:5432" (bukan nama service "db"), karena DNS antar-service Docker
-    # Compose cuma jalan di network bridge default, bukan di mode host.
+    # "127.0.0.1:<DB_HOST_PORT>" (bukan nama service "db"), karena DNS antar-service
+    # Docker Compose cuma jalan di network bridge default, bukan di mode host.
     #
     # CATATAN KOMPATIBILITAS: mode ini butuh Docker Engine asli di Linux/WSL2
     # (bukan Docker Desktop GUI di Windows/Mac, yang virtualisasi network-nya beda).
@@ -40,10 +44,11 @@ services:
     # SSH_HOST_DISPLAY manual di .env - itu akan selalu menang dibanding auto-detect.
     network_mode: host
     environment:
-      PORT: 3000
-      NODE_ENV: production
+      PORT: ${APP_PORT:-3000}
+      NODE_ENV: ${NODE_ENV:-production}
       SESSION_SECRET: ${SESSION_SECRET:-ganti_ini_dengan_random_string_yang_panjang_dan_rahasia}
-      DATABASE_URL: postgres://${PGUSER:-praktikum_user}:${PGPASSWORD:-ganti_password_ini}@127.0.0.1:5432/${PGDATABASE:-praktikum_db}
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-0}
+      DATABASE_URL: postgres://${PGUSER:-praktikum_user}:${PGPASSWORD:-ganti_password_ini}@127.0.0.1:${DB_HOST_PORT:-5433}/${PGDATABASE:-praktikum_db}
       DOCKER_SOCKET: /var/run/docker.sock
       STUDENT_IMAGE: ${STUDENT_IMAGE:-praktikum-linux:latest}
       DOCKER_NETWORK: ${DOCKER_NETWORK:-student-net}
@@ -66,16 +71,21 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-}
       LOG_DIR: /app/logs
     # Tidak ada "ports:" di sini - dengan network_mode: host, port yang di-listen app
-    # (PORT=3000) otomatis langsung bisa diakses di host lewat http://<ip-host>:3000,
+    # (ditentukan lewat APP_PORT di .env) otomatis langsung bisa diakses di host,
     # tanpa perlu mapping port manual.
     volumes:
       # WAJIB: ini yang bikin app di dalam container bisa "mengontrol" Docker Engine
       # milik HOST buat spawn container mahasiswa (sibling containers, bukan Docker-in-Docker).
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Path di sisi HOST configurable (DOCKER_SOCKET_HOST) buat kasus rootless Docker
+      # yang socket-nya bukan di lokasi standar. Path di dalam container SELALU
+      # /var/run/docker.sock (bukan "config" - ini konstanta internal, konsisten
+      # dengan environment variable DOCKER_SOCKET yang dikirim ke app di atas).
+      - ${DOCKER_SOCKET_HOST:-/var/run/docker.sock}:/var/run/docker.sock
       # Log di-mount ke host supaya persist walau container di-restart/rebuild,
       # dan gampang diakses langsung dari host buat monitoring (tail -f logs/combined-*.log)
-      # tanpa perlu masuk ke dalam container.
-      - ./logs:/app/logs
+      # tanpa perlu masuk ke dalam container. Path host configurable (misal mau simpan
+      # di disk terpisah), path container tetap konstan /app/logs.
+      - ${LOG_DIR_HOST:-./logs}:/app/logs
 
 volumes:
   pgdata:
