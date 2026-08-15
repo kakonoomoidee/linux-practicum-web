@@ -76,6 +76,19 @@ Di versi awal, kalau container di Docker dihapus manual/crash tapi record di dat
 
 Versi pertama pakai vanilla JS yang nge-swap tampilan halaman di client (`login` → `change-password` → `dashboard` semua dalam satu HTML, disembunyikan/ditampilkan pakai class `hidden`). Ini menyebabkan bug input password ga bisa diketik dengan normal (masalah state management di client yang ga perlu terjadi kalau tiap halaman punya route-nya sendiri). Pindah ke EJS server-rendered per-route menyederhanakan alur dan menghilangkan kelas bug itu sepenuhnya.
 
+### Kenapa pakai Winston buat logging, bukan `console.log` biasa?
+
+Selama development awal, `console.log`/`console.error` cukup buat debug cepat, tapi begitu platform ini beneran dipakai mahasiswa, itu ga cukup buat monitoring produksi:
+- Ga ada level (semua campur aduk — info, warning, error ga bisa dipisah/di-filter).
+- Ga ada cara gampang buat nelusurin "apa yang terjadi pada request/user tertentu" tanpa scroll manual.
+- Log ilang begitu proses restart (ga ada persistensi), padahal justru pas ada masalah itu yang paling penting buat dilihat riwayatnya.
+
+Solusinya pakai **Winston** (paling umum dipakai di ekosistem Node.js) dengan:
+- Level standar (`error`/`warn`/`info`/`http`/`debug`) — bisa atur level minimum yang ditampilkan/disimpan sesuai kebutuhan (misal cuma `warn` ke atas di produksi biar log ga penuh noise).
+- Format JSON terstruktur di file & production console — setiap baris log adalah objek JSON valid dengan field konsisten (`nim`, `event`, `containerName`, dst), siap di-`grep`/filter, atau kalau nanti mau upgrade ke tool monitoring beneran (ELK, Grafana Loki, dst), tinggal pipe log ini tanpa perlu ubah kode aplikasi.
+- File log dengan rotasi otomatis (harian, retensi 14 hari) — log tetap ada meski aplikasi restart, tapi ga numpuk selamanya.
+- `requestId` unik per HTTP request — begitu ada laporan "error pas saya klik X", tinggal `grep` request ID itu di log, langsung ketemu seluruh jejaknya (request masuk → proses di service layer → response keluar), tanpa harus nebak-nebak baris mana yang relevan.
+
 ---
 
 ## Stack Teknologi
@@ -87,6 +100,7 @@ Versi pertama pakai vanilla JS yang nge-swap tampilan halaman di client (`login`
 | Container Engine | Docker + dockerode | Standar industri, dockerode memberi kontrol penuh dari Node.js tanpa shell out ke CLI |
 | Frontend | EJS (server-rendered) + Tailwind CSS (CDN) | Sederhana, tanpa build step, cukup untuk kebutuhan dashboard yang tidak terlalu interaktif |
 | Auth | express-session + connect-pg-simple + bcrypt | Session disimpan di PostgreSQL (bukan in-memory) supaya tahan restart & tidak leak memory |
+| Logging | Winston | Level standar, format JSON terstruktur, rotasi file otomatis - siap untuk monitoring produksi |
 | Orkestrasi Deployment | Docker Compose | Satu perintah untuk jalankan app + database sekaligus |
 
 ---

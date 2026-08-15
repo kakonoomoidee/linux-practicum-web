@@ -1,6 +1,7 @@
 const Docker = require('dockerode');
 const crypto = require('crypto');
 const config = require('../config/env');
+const logger = require('../config/logger');
 
 const docker = new Docker({ socketPath: config.docker.socketPath });
 
@@ -20,7 +21,7 @@ async function ensureNetwork() {
       'com.docker.network.bridge.enable_icc': 'false',
     },
   });
-  console.log(`[docker] Network isolated "${config.docker.networkName}" dibuat (ICC disabled)`);
+  logger.info(`Network isolated "${config.docker.networkName}" dibuat (ICC disabled)`, { event: 'docker_network_created' });
 }
 
 async function findAvailablePort(usedPorts) {
