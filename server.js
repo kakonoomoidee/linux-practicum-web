@@ -24,9 +24,17 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Kalau app di belakang reverse proxy (nginx dll), ini bikin req.ip ambil IP asli
-// mahasiswa dari header X-Forwarded-For, bukan IP proxy-nya. Aman diaktifkan
-// walau ga pakai proxy sekalipun.
-app.set('trust proxy', true);
+// mahasiswa dari header X-Forwarded-For, bukan IP proxy-nya.
+//
+// PENTING: "true" itu percaya SEMUA proxy di depan app (gampang di-spoof kalau app
+// somehow ke-expose langsung tanpa proxy beneran). Pakai TRUST_PROXY_HOPS di .env
+// buat nentuin persis berapa "hop" reverse proxy yang beneran ada di depan app
+// (default 0 = ga ada proxy, req.ip diambil langsung dari koneksi TCP - paling aman
+// buat setup default di server kampus tanpa nginx di depannya).
+const trustProxyHops = parseInt(process.env.TRUST_PROXY_HOPS || '0', 10);
+if (trustProxyHops > 0) {
+  app.set('trust proxy', trustProxyHops);
+}
 
 app.use(requestLogger);
 

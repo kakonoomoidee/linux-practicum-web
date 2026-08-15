@@ -1,203 +1,211 @@
-# 🐧 Platform Praktikum Linux — Container On-Demand (v4)
+# 🐧 Platform Praktikum Linux — Container On-Demand (v4.2)
 
-Platform buat mahasiswa "minjem" container Linux full lewat browser (self-service), browser cuma jadi **entry point** — mahasiswa tetap SSH pakai terminal mereka sendiri. Container otomatis dihapus setelah TTL tertentu (default 24 jam).
+Platform penyediaan lingkungan Linux berbasis container untuk kebutuhan praktikum mahasiswa, dengan model self-service melalui browser. Browser hanya berfungsi sebagai **entry point** untuk provisioning; akses operasional tetap dilakukan mahasiswa melalui SSH dari terminal masing-masing. Setiap container memiliki masa hidup terbatas (TTL, default 24 jam) dan dihapus otomatis setelah kedaluwarsa.
 
-📖 Dokumentasi lengkap: **[about-proyek.md](./about-proyek.md)** (latar belakang & alasan keputusan teknis) dan **[WALKTHROUGH.md](./WALKTHROUGH.md)** (tur fitur-per-fitur yang sudah dibangun).
+📖 Dokumentasi terkait: **[about-proyek.md](./about-proyek.md)** (latar belakang proyek dan rasional keputusan teknis) dan **[WALKTHROUGH.md](./WALKTHROUGH.md)** (tinjauan fitur yang telah diimplementasikan).
 
-📖 Dokumentasi lengkap: **[about-proyek.md](./about-proyek.md)** (latar belakang & alasan keputusan teknis) dan **[WALKTHROUGH.md](./WALKTHROUGH.md)** (tur fitur-per-fitur yang sudah dibangun).
+> ⚠️ **Catatan desain:** platform ini dirancang untuk diakses eksklusif dari jaringan kampus/LAN dan tidak dimaksudkan untuk diekspos ke internet publik.
 
-**v4.1 changelog:**
-- ✅ **Structured logging** (Winston) — log level standar industri (`error`/`warn`/`info`/`http`/`debug`), format JSON buat file & production console, format berwarna enak dibaca buat development
-- ✅ **Request logging** — tiap HTTP request dapat `requestId` unik buat tracing, di-log dengan method/path/status/durasi/IP/NIM
-- ✅ **File log dengan rotasi otomatis** — `logs/error-YYYY-MM-DD.log` (cuma error) dan `logs/combined-YYYY-MM-DD.log` (semua level), rotasi harian, disimpan 14 hari, di-mount sebagai volume di Docker Compose biar persist & gampang di-`tail`
-- ✅ Semua `console.log`/`console.error` di seluruh codebase diganti logger terstruktur
+## Changelog
 
-**v4 changelog:**
-- ✅ **Auto-detect IP/host SSH** — ga perlu isi `SSH_HOST_DISPLAY` manual lagi. Otomatis pakai `localhost` kalau jalan di WSL, atau scan network interface kalau di server Linux biasa. Manual override tetap bisa lewat `.env` kalau perlu.
-- ✅ **Remember me** saat login — session bertahan 30 hari kalau dicentang (default: session lebih pendek)
-- ✅ **Toggle show/hide password** (ikon mata) di semua field password
-- ✅ **Skeleton loading** di dashboard saat memuat status, membuat container baru, dan menghapus container — biar ga terasa "diam" pas nunggu proses Docker
-- ✅ Dokumentasi baru: `about-proyek.md` (source of truth) dan `WALKTHROUGH.md` (tur fitur)
+**v4.2**
+- Halaman **Log Server** pada admin panel (`/admin/logs`) — administrator dapat meninjau log aplikasi langsung dari browser, dengan filter berdasarkan level, kata kunci, dan jumlah baris.
+- Seluruh konfigurasi Docker Compose kini bersumber dari variabel environment, termasuk port PostgreSQL sisi host (`DB_HOST_PORT`) — menghindari konflik dengan instance PostgreSQL lain yang mungkin sudah berjalan di port default 5432.
+- Perbaikan keamanan: pengaturan `trust proxy` tidak lagi menggunakan nilai `true` (yang berisiko terhadap spoofing IP), digantikan variabel `TRUST_PROXY_HOPS` yang eksplisit.
 
-**v3 changelog:**
-- ✅ Layered architecture (Controller → Service → Repository)
-- ✅ Database pindah dari SQLite ke **PostgreSQL**
-- ✅ Frontend pindah ke **EJS** (server-rendered) + **Tailwind CSS**, tema white professional
-- ✅ **Admin panel** — monitoring instance yang jalan + statistik pemakaian per mahasiswa
-- ✅ **Self-healing**: kalau ada container "nyangkut" di DB (misal container-nya udah dihapus manual/crash di Docker tapi record-nya masih 'running'), sistem otomatis mendeteksi & membersihkan record itu sendiri saat mahasiswa coba bikin container baru — **tidak perlu lagi hapus tabel manual**
-- ✅ Session disimpan di PostgreSQL (bukan in-memory), aman dari memory leak & survive restart
-- ✅ Fix bug input login yang ga bisa diketik (pindah dari SPA client-side ke server-rendered page per route)
-- ✅ Semua dibungkus **Docker Compose** (app + database), tinggal `docker compose up`
+**v4.1**
+- **Structured logging** menggunakan Winston — level log mengikuti konvensi industri (`error`/`warn`/`info`/`http`/`debug`), format JSON untuk file dan console produksi, format berwarna untuk console pengembangan.
+- **Request logging** — setiap HTTP request memperoleh `requestId` unik untuk keperluan tracing, dicatat beserta method, path, status, durasi, IP, dan NIM (jika terautentikasi).
+- **Rotasi file log otomatis** — `logs/error-YYYY-MM-DD.log` (khusus level error) dan `logs/combined-YYYY-MM-DD.log` (seluruh level), rotasi harian dengan retensi 14 hari, dipasang sebagai volume pada Docker Compose agar persisten dan dapat diakses langsung dari host.
+- Seluruh pemanggilan `console.log`/`console.error` pada codebase telah dimigrasikan ke logger terstruktur.
 
-> ⚠️ Didesain untuk diakses **hanya dari jaringan kampus/LAN**, tidak expose ke public internet.
+**v4.0**
+- **Auto-detect host SSH** — variabel `SSH_HOST_DISPLAY` tidak lagi wajib diisi manual. Sistem otomatis menggunakan `localhost` saat berjalan di WSL, atau memindai antarmuka jaringan pada server Linux. Override manual tetap didukung melalui `.env`.
+- **Remember me** pada login — sesi dapat diperpanjang hingga 30 hari apabila dicentang (default: durasi sesi lebih pendek).
+- **Toggle visibilitas password** pada seluruh field password.
+- **Skeleton loading** pada dashboard selama proses pemuatan status, pembuatan container, dan penghapusan container.
+- Dokumentasi proyek: `about-proyek.md` dan `WALKTHROUGH.md`.
+
+**v3.0**
+- Migrasi ke **layered architecture** (Controller → Service → Repository).
+- Migrasi basis data dari SQLite ke **PostgreSQL**.
+- Migrasi frontend ke **EJS** (server-rendered) dengan **Tailwind CSS**.
+- **Admin panel** — pemantauan instance aktif dan statistik penggunaan per mahasiswa.
+- **Self-healing container**: sistem mendeteksi dan membersihkan secara otomatis record container yang telah tidak sinkron dengan Docker Engine (misalnya akibat penghapusan manual atau crash), sehingga tidak lagi memerlukan intervensi manual pada basis data.
+- Sesi disimpan pada PostgreSQL (bukan in-memory), menghilangkan risiko memory leak dan kehilangan sesi saat restart.
+- Migrasi arsitektur frontend dari SPA client-side ke server-rendered per-route, menghilangkan kelas bug terkait state management pada form input.
+- Orkestrasi deployment melalui **Docker Compose**.
 
 ---
 
-## Arsitektur (Layered)
+## Arsitektur
+
+Aplikasi mengikuti pola layered architecture dengan alur permintaan sebagai berikut:
 
 ```
 Request
   │
   ▼
-Routes           (src/routes/*)         — definisi endpoint, middleware apa yang jalan
+Routes           (src/routes/*)         — definisi endpoint dan middleware
   │
   ▼
-Controllers      (src/controllers/*)    — terima request, panggil service, format response HTTP
+Controllers      (src/controllers/*)    — penanganan request/response HTTP
   │
   ▼
-Services         (src/services/*)       — LOGIKA BISNIS (validasi, self-healing, rollback, dst)
+Services         (src/services/*)       — logika bisnis (validasi, self-healing, rollback)
   │
   ▼
-Repositories     (src/repositories/*)   — query database murni, tidak ada logika bisnis
+Repositories     (src/repositories/*)   — akses data murni, tanpa logika bisnis
   │
   ▼
 PostgreSQL
 ```
 
-Docker provisioning (`dockerService.js`) diperlakukan sebagai service tersendiri yang dipanggil oleh `containerService.js`.
+Provisioning Docker (`dockerService.js`) diperlakukan sebagai service tersendiri yang dikonsumsi oleh `containerService.js`.
 
 ---
 
-## Struktur Project
+## Struktur Proyek
 
 ```
 .
-├── about-proyek.md                    # ⭐ Source of truth: latar belakang & alasan keputusan teknis
-├── WALKTHROUGH.md                     # ⭐ Tur fitur-per-fitur yang sudah dibangun
-├── docker-compose.yml                 # Orkestrasi app + PostgreSQL jadi satu perintah
-├── Dockerfile                         # Image buat web app (multi-stage build)
+├── about-proyek.md                    # Latar belakang proyek dan rasional keputusan teknis
+├── WALKTHROUGH.md                     # Tinjauan fitur yang telah diimplementasikan
+├── docker-compose.yml                 # Orkestrasi service app + PostgreSQL
+├── Dockerfile                         # Image untuk web app (multi-stage build)
 ├── .dockerignore
-├── server.js                          # Entry point
+├── server.js                          # Entry point aplikasi
 ├── src/
 │   ├── config/
-│   │   ├── env.js                     # Semua config dari .env di satu tempat
-│   │   └── logger.js                  # ⭐ Winston structured logger (JSON + rotasi file)
+│   │   ├── env.js                     # Konfigurasi terpusat dari environment variable
+│   │   └── logger.js                  # Winston structured logger (JSON + rotasi file)
 │   ├── db/
 │   │   ├── connection.js              # PostgreSQL connection pool
-│   │   ├── schema.sql                 # Schema (idempotent)
-│   │   └── initSchema.js              # Runner buat schema.sql saat startup
-│   ├── repositories/                  # Query DB murni (async/await, pg)
+│   │   ├── schema.sql                 # Skema basis data (idempotent)
+│   │   └── initSchema.js              # Inisialisasi skema saat startup
+│   ├── repositories/                  # Akses data (async/await, node-postgres)
 │   │   ├── studentRepository.js
 │   │   ├── containerRepository.js
 │   │   ├── activityLogRepository.js
 │   │   └── adminRepository.js
 │   ├── services/                      # Logika bisnis
 │   │   ├── authService.js
-│   │   ├── containerService.js        # ⭐ self-healing & rollback logic ada di sini
+│   │   ├── containerService.js        # Self-healing dan rollback logic
 │   │   ├── dockerService.js
-│   │   └── adminService.js
-│   ├── controllers/                   # HTTP request/response handling
+│   │   ├── adminService.js
+│   │   └── logService.js              # Pembacaan & parsing file log untuk admin panel
+│   ├── controllers/                   # Penanganan HTTP request/response
 │   │   ├── authController.js
 │   │   ├── containerController.js
 │   │   ├── viewController.js
 │   │   └── adminController.js
 │   ├── middleware/
-│   │   ├── auth.js                    # Guard mahasiswa
-│   │   ├── adminAuth.js               # Guard admin
-│   │   └── requestLogger.js           # ⭐ Log tiap HTTP request + requestId buat tracing
+│   │   ├── auth.js                    # Guard sesi mahasiswa
+│   │   ├── adminAuth.js               # Guard sesi admin
+│   │   └── requestLogger.js           # Logging HTTP request + requestId untuk tracing
 │   ├── routes/
 │   │   ├── authRoutes.js              # /api/auth/*
 │   │   ├── containerRoutes.js         # /api/containers/*
-│   │   ├── viewRoutes.js              # /login, /dashboard, dst (halaman)
+│   │   ├── viewRoutes.js              # Halaman: /login, /dashboard, dll.
 │   │   └── adminRoutes.js             # /admin/*
-│   ├── cron/cleanupJob.js             # Auto-hapus container expired
+│   ├── cron/cleanupJob.js             # Penghapusan otomatis container kedaluwarsa
 │   └── utils/
-│       ├── ServiceError.js            # Error class custom antar layer
-│       └── detectHost.js              # ⭐ Auto-detect IP/host buat SSH mahasiswa
-├── logs/                              # File log (rotasi harian, di-gitignore isinya)
-├── views/                             # EJS templates (Tailwind via CDN)
+│       ├── ServiceError.js            # Error class kustom antar layer
+│       └── detectHost.js              # Auto-detect IP/host untuk SSH mahasiswa
+├── logs/                              # File log (rotasi harian, isi di-gitignore)
+├── views/                             # Template EJS (Tailwind via CDN)
 │   ├── partials/
 │   │   ├── head.ejs
-│   │   └── password-field.ejs         # Reusable input password + toggle show/hide
+│   │   └── password-field.ejs         # Komponen input password dengan toggle visibilitas
 │   ├── login.ejs
 │   ├── change-password.ejs
 │   ├── dashboard.ejs
 │   └── admin/
 │       ├── login.ejs
-│       └── dashboard.ejs              # Monitoring instance + usage stats
-├── public/js/                         # JS minimal buat AJAX call ke /api/* (termasuk password-toggle.js)
-├── docker/                            # Dockerfile + entrypoint image mahasiswa
+│       ├── dashboard.ejs              # Monitoring instance dan statistik penggunaan
+│       └── logs.ejs                   # Log viewer
+├── public/js/                         # Client-side script untuk komunikasi dengan /api/*
+├── docker/                            # Dockerfile dan entrypoint image mahasiswa
 ├── scripts/
-│   ├── seed.js                        # ⭐ Seed admin AMAN (password random kalau ga diisi)
-│   ├── import-students.js             # Import NIM dari CSV elearning
+│   ├── seed.js                        # Seeding akun admin (kredensial aman)
+│   ├── import-students.js             # Import daftar mahasiswa dari CSV
 │   └── build-image.sh
 └── .env.example
 ```
 
 ---
 
-## Self-Healing: Fix untuk Masalah "Harus Hapus Tabel Manual"
+## Self-Healing: Penanganan Container yang Tidak Sinkron dengan Docker Engine
 
-Sebelumnya, kalau container di Docker dihapus manual/crash tapi record di DB masih bilang `'running'`, mahasiswa keblokir bikin container baru selamanya (limit 1 container/mahasiswa) sampai admin hapus row itu manual di database.
+Pada implementasi awal, apabila sebuah container dihapus secara manual atau mengalami crash di level Docker sementara record pada basis data masih berstatus `'running'`, mahasiswa terkait akan terus ditolak saat mencoba membuat container baru (dibatasi 1 container aktif per mahasiswa). Satu-satunya jalan keluar pada saat itu adalah intervensi manual administrator ke basis data.
 
-**Sekarang alurnya** (lihat `src/services/containerService.js` fungsi `createForStudent`):
+**Alur penanganan saat ini** (lihat `src/services/containerService.js`, fungsi `createForStudent`):
 
-1. Mahasiswa klik "Buat Container Baru".
-2. Sistem cek: ada record `'running'` di DB buat NIM ini?
-3. Kalau ada → sistem **verifikasi langsung ke Docker Engine** apakah container itu BENERAN masih hidup (`dockerService.isContainerAlive`).
-   - Masih hidup → ditolak dengan pesan jelas "sudah punya container aktif".
-   - **Sudah tidak ada (404 dari Docker)** → record lama otomatis ditandai `destroyed`, log dicatat, mahasiswa **langsung bisa lanjut bikin container baru** tanpa campur tangan admin.
-   - Docker Engine sendiri tidak bisa dihubungi (daemon down) → sistem **tidak** asal menghapus record (biar aman), kasih pesan error jelas "coba lagi nanti".
-4. Kalau lolos, container baru dibuat di Docker.
-5. Kalau container berhasil dibuat di Docker tapi **gagal disimpan ke database** (misal koneksi DB putus di tengah), sistem otomatis **rollback** — container yang baru dibuat di Docker langsung dihapus lagi, supaya tidak ada container "orphan" yang jalan tanpa tercatat.
+1. Mahasiswa mengajukan permintaan pembuatan container baru.
+2. Sistem memeriksa keberadaan record berstatus `'running'` untuk NIM tersebut.
+3. Apabila ditemukan, sistem melakukan **verifikasi langsung ke Docker Engine** (`dockerService.isContainerAlive`) untuk memastikan status sebenarnya:
+   - Container masih berjalan → permintaan ditolak dengan pesan yang jelas.
+   - Container sudah tidak ada di Docker Engine (respons 404) → record lama otomatis ditandai `destroyed`, dicatat pada log, dan mahasiswa dapat langsung melanjutkan pembuatan container baru tanpa keterlibatan administrator.
+   - Docker Engine tidak dapat dihubungi (daemon tidak aktif) → sistem **tidak** menghapus record apa pun demi keamanan data, dan mengembalikan pesan error yang informatif.
+4. Apabila lolos pemeriksaan, container baru dibuat pada Docker Engine.
+5. Apabila container berhasil dibuat namun **gagal disimpan ke basis data** (misalnya akibat koneksi database terputus), sistem melakukan **rollback otomatis** dengan menghapus kembali container yang baru dibuat, mencegah munculnya container "orphan" yang berjalan tanpa tercatat.
 
-Admin juga bisa force-delete instance kapan saja lewat admin panel kalau butuh intervensi manual (tanpa harus masuk ke database).
-
-Sudah diuji end-to-end di lingkungan testing (lihat catatan pengujian): skenario record 'nyangkut' + Docker unreachable menghasilkan error 503 yang jelas tanpa menghapus data, memastikan sistem tidak pernah asal menghapus record ketika statusnya tidak bisa dipastikan.
+Administrator juga dapat melakukan force-delete terhadap instance kapan pun melalui admin panel tanpa perlu mengakses basis data secara langsung.
 
 ---
 
-## 🐳 Setup Paling Gampang: Docker Compose (Direkomendasikan)
+## 🐳 Deployment dengan Docker Compose (Direkomendasikan)
 
-Semua dibungkus jadi 2 service: `app` (web app Node.js) dan `db` (PostgreSQL). Tinggal `docker compose up`, ga perlu install Node/PostgreSQL manual di server kampus — cukup Docker Engine aja.
+Deployment dibungkus menjadi dua service: `app` (aplikasi Node.js) dan `db` (PostgreSQL). Instalasi manual Node.js maupun PostgreSQL pada server tidak diperlukan — cukup Docker Engine.
 
-**Cara kerja penting:** karena app ini juga perlu "mengontrol" Docker buat bikin container mahasiswa, container `app` dijalankan dengan **Docker socket host di-mount ke dalamnya** (`/var/run/docker.sock`). Ini bikin app bisa nyuruh Docker Engine host bikin/hapus container mahasiswa sebagai *sibling container* — bukan Docker-di-dalam-Docker beneran, cuma "titip perintah" ke Docker Engine yang sama dengan yang dipakai host. Konsekuensinya: container mahasiswa yang dibuat itu port-nya ke-bind ke **host**.
+**Catatan arsitektur:** karena aplikasi memerlukan kendali atas Docker Engine untuk melakukan provisioning container mahasiswa, service `app` dijalankan dengan **Docker socket host dipasang ke dalamnya** (`/var/run/docker.sock`). Mekanisme ini memungkinkan `app` memerintahkan Docker Engine milik host untuk membuat/menghapus container mahasiswa sebagai *sibling container* — bukan Docker-in-Docker, melainkan delegasi perintah ke Docker Engine yang sama dengan yang digunakan host. Konsekuensinya, container mahasiswa yang dibuat memiliki port yang di-bind langsung ke host.
 
-Service `app` juga pakai `network_mode: host`, supaya bisa **auto-detect IP LAN server** buat ditampilkan ke mahasiswa (ga perlu isi `SSH_HOST_DISPLAY` manual — lihat `about-proyek.md` bagian "Kenapa SSH_HOST_DISPLAY sekarang auto-detect" buat detail lengkapnya). Kalau kamu pakai Docker Desktop (Windows/Mac) dan auto-detect-nya meleset, isi `SSH_HOST_DISPLAY` manual di `.env` — nilai itu akan selalu menang.
+Service `app` juga menggunakan `network_mode: host`, yang memungkinkan **auto-detect IP LAN server** untuk ditampilkan kepada mahasiswa (lihat `about-proyek.md` untuk rasional lengkap). Pada Docker Desktop (Windows/Mac), mode ini kurang konsisten — apabila auto-detect tidak akurat, isi `SSH_HOST_DISPLAY` secara manual pada `.env`; nilai manual senantiasa diprioritaskan.
 
 ### 1. Prasyarat
 
-- Docker Engine + Docker Compose plugin terinstall di server kampus (`docker compose version` buat cek)
+- Docker Engine dan Docker Compose plugin (`docker compose version` untuk verifikasi)
 
-### 2. Setup environment
+### 2. Konfigurasi environment
 
 ```bash
 cd linux-praktikum
 cp .env.example .env
 ```
 
-Edit `.env`, minimal ubah:
-- `PGPASSWORD` — password PostgreSQL (jangan biarin default)
-- `SESSION_SECRET` — random string panjang
-- `ADMIN_USERNAME` / `ADMIN_PASSWORD` — kosongin `ADMIN_PASSWORD` kalau mau di-generate otomatis pas seed
-- `SSH_HOST_DISPLAY` — **biarkan kosong** (default) supaya auto-detect. Isi manual cuma kalau auto-detect-nya salah pilih IP.
+Parameter minimal yang perlu disesuaikan pada `.env`:
+- `PGPASSWORD` — kata sandi PostgreSQL (jangan gunakan nilai default)
+- `SESSION_SECRET` — string acak yang panjang
+- `ADMIN_USERNAME` / `ADMIN_PASSWORD` — kosongkan `ADMIN_PASSWORD` untuk generate otomatis saat seeding
+- `SSH_HOST_DISPLAY` — biarkan kosong (default) untuk auto-detect; isi manual hanya apabila hasil deteksi tidak sesuai
+- `DB_HOST_PORT` — port PostgreSQL sisi host (default `5433`, sengaja bukan `5432` untuk menghindari konflik dengan instance PostgreSQL lain yang mungkin sudah berjalan)
 
-### 3. Build & jalankan
+### 3. Build dan menjalankan
 
 ```bash
 docker compose up -d --build
 ```
 
-Ini otomatis: build image app, tarik image `postgres:16-alpine`, tunggu PostgreSQL siap (`healthcheck`), baru start app (skema DB otomatis dibuat saat app start, dengan retry kalau DB-nya belum bener-bener siap).
+Proses ini secara otomatis: build image `app`, menarik image `postgres:16-alpine`, menunggu PostgreSQL siap (healthcheck), kemudian menjalankan `app` (skema basis data diinisialisasi otomatis saat startup, dengan mekanisme retry apabila PostgreSQL belum sepenuhnya siap).
 
-Cek statusnya:
+Verifikasi status:
 ```bash
 docker compose ps
 docker compose logs -f app
 ```
 
-### 4. Bikin akun admin (seed)
+### 4. Seeding akun admin
 
 ```bash
 npm run docker:seed
-# atau manual: docker compose exec app node scripts/seed.js
+# atau: docker compose exec app node scripts/seed.js
 ```
 
-Catat password admin yang ditampilkan (kalau `ADMIN_PASSWORD` dikosongkan di `.env`, password di-generate random dan cuma ditampilkan sekali di sini).
+Catat kredensial admin yang ditampilkan (apabila `ADMIN_PASSWORD` dikosongkan pada `.env`, password digenerate secara acak dan hanya ditampilkan satu kali).
 
-### 5. Build image Docker buat container mahasiswa
+### 5. Build image container mahasiswa
 
-Ini **beda** dari image `app` — ini image yang dipakai buat container per-mahasiswa (Ubuntu + SSH). Karena `app` cuma numpang perintah ke Docker Engine host, image ini di-build **langsung di host**, bukan di dalam container `app`:
+Image ini berbeda dari image `app` — digunakan untuk container per-mahasiswa (Ubuntu + SSH). Karena `app` hanya mendelegasikan perintah ke Docker Engine host, image ini dibangun **langsung di host**, bukan di dalam container `app`:
 
 ```bash
 chmod +x scripts/build-image.sh
@@ -207,55 +215,53 @@ chmod +x scripts/build-image.sh
 ### 6. Import daftar mahasiswa
 
 ```bash
-# Copy dulu file CSV ke dalam container, atau jalanin dari host kalau Node lokal ada.
-# Cara paling gampang: exec masuk container app, lalu jalanin import di sana:
 docker compose cp daftar-mahasiswa.csv app:/app/daftar-mahasiswa.csv
 docker compose exec app node scripts/import-students.js daftar-mahasiswa.csv
 ```
 
-### 7. Selesai
+### 7. Verifikasi akses
 
 - Dashboard mahasiswa: `http://<ip-server>:3000/login`
 - Dashboard admin: `http://<ip-server>:3000/admin/login`
 
-### Perintah harian yang berguna
+### Referensi Perintah Operasional
 
-| Kebutuhan | Command |
+| Kebutuhan | Perintah |
 |---|---|
-| Lihat log app real-time | `npm run docker:logs` |
-| Restart semua service | `docker compose restart` |
-| Stop semua (data tetap aman di volume) | `npm run docker:down` / `docker compose down` |
-| Stop + **hapus semua data DB** (hati-hati!) | `docker compose down -v` |
-| Masuk shell container app buat debug | `docker compose exec app sh` |
-| Masuk psql ke database | `docker compose exec db psql -U praktikum_user -d praktikum_db` |
-| Update setelah ganti kode | `docker compose up -d --build` |
+| Log aplikasi secara real-time | `npm run docker:logs` |
+| Restart seluruh service | `docker compose restart` |
+| Stop seluruh service (data tetap tersimpan) | `npm run docker:down` |
+| Stop dan **hapus seluruh data basis data** (destruktif) | `docker compose down -v` |
+| Masuk ke shell container `app` | `docker compose exec app sh` |
+| Masuk ke psql basis data | `docker compose exec db psql -U praktikum_user -d praktikum_db` |
+| Update setelah perubahan kode | `docker compose up -d --build` |
 
-### Kenapa port PostgreSQL ga di-publish ke host?
+### Kebijakan Akses PostgreSQL
 
-Di `docker-compose.yml`, service `db` sengaja **tidak** membuka port `5432` ke host — database cuma bisa diakses dari dalam Docker network internal (oleh service `app`). Ini lebih aman daripada expose ke jaringan kampus. Kalau kamu perlu connect langsung pakai DBeaver/pgAdmin dari host buat debug, buka comment baris `ports: - "5432:5432"` di bagian `db` pada `docker-compose.yml`, lalu `docker compose up -d` ulang.
+Port PostgreSQL sisi host (`DB_HOST_PORT`, default `5433`) hanya di-bind ke `127.0.0.1` (loopback), bukan ke seluruh antarmuka jaringan (`0.0.0.0`). Dengan konfigurasi ini, PostgreSQL tetap tidak dapat diakses dari jaringan kampus/LAN, namun tetap dapat dijangkau oleh proses lain pada mesin/VM yang sama — termasuk service `app` (karena menggunakan `network_mode: host`), maupun tool eksternal seperti DBeaver/pgAdmin untuk keperluan debugging langsung dari host.
 
 ---
 
-## Setup Manual (Tanpa Docker)
+## Deployment Manual (Tanpa Docker)
 
 ### 1. Prasyarat
 
 - Node.js 18+
-- **PostgreSQL 14+** terinstall & jalan
-- Docker Engine terinstall & daemon jalan, user Node punya akses ke `/var/run/docker.sock`
+- PostgreSQL 14+ (terinstal dan berjalan)
+- Docker Engine dengan akses `/var/run/docker.sock` untuk user yang menjalankan Node.js
 
 ```bash
-sudo usermod -aG docker $USER   # logout/login ulang setelah ini
+sudo usermod -aG docker $USER   # logout/login ulang setelah perintah ini
 ```
 
-### 2. Setup database
+### 2. Persiapan basis data
 
 ```bash
 sudo -u postgres psql -c "CREATE USER praktikum_user WITH PASSWORD 'ganti_password_ini';"
 sudo -u postgres psql -c "CREATE DATABASE praktikum_db OWNER praktikum_user;"
 ```
 
-### 3. Install & konfigurasi
+### 3. Instalasi dan konfigurasi
 
 ```bash
 cd linux-praktikum
@@ -263,21 +269,21 @@ npm install
 cp .env.example .env
 ```
 
-Edit `.env`, minimal:
-- `DATABASE_URL` (atau `PGHOST`/`PGUSER`/`PGPASSWORD`/`PGDATABASE` terpisah)
-- `SESSION_SECRET` — random string panjang
-- `SSH_HOST_DISPLAY` — biarkan kosong buat auto-detect (otomatis pakai `localhost` di WSL, atau scan interface di server Linux biasa). Isi manual cuma kalau hasil auto-detect-nya salah.
-- `ADMIN_USERNAME` / `ADMIN_PASSWORD` — kalau `ADMIN_PASSWORD` dikosongkan, script seed akan generate password random yang aman
+Parameter minimal pada `.env`:
+- `DATABASE_URL` (atau `PGHOST`/`PGUSER`/`PGPASSWORD`/`PGDATABASE` secara terpisah)
+- `SESSION_SECRET` — string acak yang panjang
+- `SSH_HOST_DISPLAY` — biarkan kosong untuk auto-detect
+- `ADMIN_USERNAME` / `ADMIN_PASSWORD` — kosongkan `ADMIN_PASSWORD` untuk generate otomatis
 
-### 4. Jalankan seed (bikin akun admin)
+### 4. Seeding akun admin
 
 ```bash
 npm run seed
 ```
 
-Ini **aman dijalankan berkali-kali** — kalau akun admin sudah ada, tidak akan ditimpa/direset. Kalau password di-generate otomatis, **catat sekarang juga**, karena hanya ditampilkan sekali di terminal (yang tersimpan di DB cuma hash-nya).
+Perintah ini aman dijalankan berulang kali — akun admin yang sudah ada tidak akan ditimpa. Apabila password digenerate otomatis, segera catat karena hanya ditampilkan satu kali.
 
-### 5. Build image Docker mahasiswa
+### 5. Build image container mahasiswa
 
 ```bash
 chmod +x scripts/build-image.sh
@@ -286,26 +292,21 @@ chmod +x scripts/build-image.sh
 
 ### 6. Import daftar mahasiswa
 
-Export CSV dari elearning (kolom `nim,nama`), lalu:
-
 ```bash
 node scripts/import-students.js path/ke/daftar-mahasiswa.csv
 ```
 
-Aman dijalankan berkali-kali, NIM yang sudah ada di-skip (tidak menimpa password yang sudah diganti mahasiswa).
+Aman dijalankan berulang kali — NIM yang sudah terdaftar akan dilewati tanpa menimpa password yang sudah diganti mahasiswa.
 
-### 7. Jalankan server
+### 7. Menjalankan server
 
 ```bash
 npm start
 ```
 
-- Dashboard mahasiswa: `http://<ip-server>:3000/login`
-- Dashboard admin: `http://<ip-server>:3000/admin/login`
+Firewall kampus perlu dikonfigurasi untuk mengizinkan akses ke port `3000` dan rentang `SSH_PORT_MIN`–`SSH_PORT_MAX` **hanya dari subnet kampus**, dan memblokir akses dari luar.
 
-Firewall kampus: **allow** port `3000` dan range `SSH_PORT_MIN`-`SSH_PORT_MAX` **hanya dari subnet kampus**, **block** dari luar.
-
-### (Opsional) pm2 buat auto-restart
+### Menjalankan sebagai Service (Opsional)
 
 ```bash
 npm install -g pm2
@@ -315,129 +316,144 @@ pm2 save && pm2 startup
 
 ---
 
-## Monitoring & Logs
+## Monitoring dan Logging
 
-Semua aktivitas penting (login, bikin/hapus container, self-healing, rollback, error) di-log terstruktur pakai **Winston**, format JSON, dengan level standar industri: `error` > `warn` > `info` > `http` > `debug`.
+Seluruh aktivitas signifikan (autentikasi, pembuatan/penghapusan container, self-healing, rollback, error) dicatat secara terstruktur menggunakan **Winston**, dengan format JSON dan level log mengikuti konvensi industri: `error` > `warn` > `info` > `http` > `debug`.
 
-### Lihat log real-time
+### Log Viewer pada Admin Panel
+
+Administrator dapat meninjau log aplikasi langsung dari browser melalui `/admin/logs`, tanpa memerlukan akses terminal ke server. Fitur yang tersedia:
+- Filter berdasarkan level (`error`, `warn`, `info`, `http`, `debug`)
+- Pencarian bebas berdasarkan kata kunci (NIM, pesan, nama event, request ID, dsb.)
+- Pengaturan jumlah baris yang ditampilkan (100–1000)
+
+### Akses Log via Command Line
 
 ```bash
-# Lewat Docker Compose (paling gampang)
+# Melalui Docker Compose
 npm run docker:logs
-# atau langsung:
+# atau:
 docker compose logs -f app
 
-# Lewat file (kalau jalan manual tanpa Docker)
-npm run logs:tail          # semua level
-npm run logs:errors        # cuma error
+# Melalui file (deployment manual)
+npm run logs:tail          # seluruh level
+npm run logs:errors        # khusus level error
 ```
 
-### Struktur file log
+### Struktur File Log
 
 ```
 logs/
-├── combined-2026-08-15.log   # SEMUA level log
-├── error-2026-08-15.log      # CUMA level error (gampang cari masalah)
-└── ...                        # rotasi harian, auto-hapus setelah 14 hari
+├── combined-2026-08-15.log   # seluruh level log
+├── error-2026-08-15.log      # khusus level error
+└── ...                        # rotasi harian, retensi 14 hari
 ```
 
-Tiap baris adalah satu objek JSON valid, contoh:
+Setiap baris merupakan objek JSON yang valid, contoh:
 ```json
 {"level":"info","message":"Container berhasil dibuat","nim":"20220140020","containerName":"student-20220140020-...","event":"container_created","timestamp":"2026-08-15T07:23:00.000Z"}
 ```
 
-Field `event` konsisten di banyak log penting (`container_created`, `container_self_heal`, `container_rollback`, `admin_login_success`, `student_login_failed`, dst) — berguna kalau nanti mau di-filter/agregasi (`grep '"event":"container_self_heal"' logs/combined-*.log`), atau di-pipe ke tool monitoring beneran (ELK, Grafana Loki, Datadog, dll) karena formatnya udah JSON siap-pakai.
+Field `event` digunakan secara konsisten pada log signifikan (`container_created`, `container_self_heal`, `container_rollback`, `admin_login_success`, `student_login_failed`, dsb.), memudahkan proses filtering dan agregasi. Format JSON yang konsisten juga memungkinkan integrasi langsung dengan tooling monitoring seperti ELK Stack, Grafana Loki, atau Datadog apabila diperlukan pada skala yang lebih besar.
 
-### Tracing satu request tertentu
+### Tracing Request Individual
 
-Setiap request dapat `requestId` unik (juga dikembalikan lewat response header `X-Request-Id`). Kalau ada laporan error dari mahasiswa/admin, minta mereka screenshot/kirim request ID-nya (bisa dilihat di DevTools browser → Network tab → response header), lalu:
+Setiap HTTP request memperoleh `requestId` unik (dikembalikan melalui response header `X-Request-Id`). Untuk menelusuri laporan error dari mahasiswa/admin, mintakan request ID terkait (dapat dilihat pada DevTools browser → tab Network → response header), kemudian:
 ```bash
 grep "<request-id>" logs/combined-*.log
 ```
-Ini nunjukin seluruh jejak request itu, termasuk error detail kalau ada.
 
-### Atur level log
+### Konfigurasi Level Log
 
-Default: `debug` kalau `NODE_ENV` bukan `production`, `info` kalau production. Override manual lewat `.env`:
+Default: `debug` apabila `NODE_ENV` bukan `production`, `info` apabila `production`. Override manual melalui `.env`:
 ```
-LOG_LEVEL=warn   # cuma tampilkan warning ke atas, misalnya buat produksi yang santai
+LOG_LEVEL=warn
 ```
+
+---
 
 ## Admin Panel
 
-Buka `/admin/login`, login dengan akun dari hasil `npm run seed`. Halaman admin (`/admin`) menampilkan:
+Akses melalui `/admin/login` menggunakan kredensial hasil `npm run seed`. Fitur yang tersedia pada `/admin`:
 
-- **Summary cards**: total mahasiswa, instance aktif, total container sepanjang waktu, login 24 jam terakhir.
-- **Tabel instance yang sedang jalan**: NIM, nama, nama container, perintah SSH, waktu dibuat/kadaluarsa, tombol **Hapus** (force-destroy tanpa perlu masuk ke database).
-- **Tabel statistik pemakaian per mahasiswa**: total login, total container pernah dibuat, status aktif/tidak, terakhir bikin container — buat lihat siapa yang aktif pakai platform dan siapa yang belum.
-
----
-
-## Alur pemakaian mahasiswa
-
-1. Buka `http://<ip-server>:3000` dari jaringan kampus.
-2. Login pakai NIM + password default `12345678`.
-3. Wajib ganti password (tidak boleh sama dengan default).
-4. Klik "Buat Container Baru" → dapat info IP, port, username, password.
-5. Buka terminal sendiri: `ssh mahasiswa@<ip> -p <port>`.
-6. Container otomatis terhapus setelah TTL habis (default 24 jam, atur di `.env`).
+- **Ringkasan statistik**: total mahasiswa terdaftar, jumlah instance aktif, total container yang pernah dibuat, jumlah login dalam 24 jam terakhir.
+- **Tabel instance aktif**: NIM, nama mahasiswa, nama container, perintah SSH, waktu pembuatan/kedaluwarsa, serta opsi force-delete.
+- **Tabel statistik penggunaan per mahasiswa**: total login, total container yang pernah dibuat, status aktif, dan waktu pembuatan container terakhir.
+- **Log viewer** (`/admin/logs`): lihat bagian Monitoring dan Logging di atas.
 
 ---
 
-## Keamanan yang diterapkan
+## Alur Penggunaan Mahasiswa
 
-- Password web & Linux di-hash `bcrypt`.
-- Password container ditampilkan sekali, tidak disimpan plaintext.
-- Session disimpan di PostgreSQL, cookie `httpOnly`.
-- Rate limiting login (mahasiswa & admin), 10x/15 menit.
-- Container: `CapDrop: ALL` + capability minimal (bukan `--privileged`), `PidsLimit: 256` (anti fork-bomb), resource limit (memory/CPU/disk), `no-new-privileges`.
-- Network container terisolasi (`enable_icc=false`) — antar container tidak bisa saling akses.
-- Seed admin **tidak pernah pakai password default lemah** — generate random kalau tidak diisi eksplisit di `.env`.
+1. Akses `http://<ip-server>:3000` dari jaringan kampus.
+2. Login menggunakan NIM dan password default `12345678`.
+3. Wajib mengganti password (tidak boleh identik dengan default).
+4. Klik "Buat Container Baru" untuk memperoleh kredensial akses: IP, port, username, dan password.
+5. Akses melalui terminal pribadi: `ssh mahasiswa@<ip> -p <port>`.
+6. Container dihapus otomatis setelah TTL habis (default 24 jam, dapat diatur melalui `.env`).
 
-## Yang masih perlu kamu setup sendiri (di luar kode)
+---
 
-- **Firewall kampus** — port dashboard & range SSH cuma reachable dari subnet kampus.
-- **Rate-limit outbound traffic per container** (`tc`/`iptables`) kalau mau jaga-jaga dari penyalahgunaan jaringan.
-- **Monitoring resource** (`docker stats` / cAdvisor / Prometheus) buat deteksi anomali (mining, dsb).
-- **HTTPS** via reverse proxy (nginx) kalau dashboard diakses lewat domain internal.
+## Kebijakan Keamanan
+
+- Password web dan Linux di-hash menggunakan `bcrypt`.
+- Password container ditampilkan satu kali saat pembuatan, tidak pernah disimpan dalam bentuk plaintext.
+- Sesi disimpan pada PostgreSQL dengan cookie `httpOnly`.
+- Rate limiting pada endpoint login (mahasiswa dan admin), 10 percobaan per 15 menit.
+- Container mahasiswa: `CapDrop: ALL` dengan capability minimal (bukan mode `--privileged`), `PidsLimit: 256` (mitigasi fork-bomb), resource limit (memory/CPU/disk), `no-new-privileges`.
+- Isolasi jaringan antar-container (`enable_icc=false`).
+- Akun admin tidak pernah menggunakan password default yang lemah — digenerate secara acak apabila tidak diisi eksplisit pada `.env`.
+- Pengaturan `trust proxy` menggunakan nilai eksplisit (`TRUST_PROXY_HOPS`), bukan `true`, untuk mencegah risiko spoofing header IP.
+
+## Cakupan di Luar Kode (Perlu Konfigurasi Manual)
+
+- **Firewall kampus** — pembatasan akses port dashboard dan rentang port SSH hanya dari subnet kampus.
+- **Rate-limiting outbound traffic per container** (`tc`/`iptables`) sebagai mitigasi tambahan terhadap penyalahgunaan jaringan.
+- **Monitoring resource** (`docker stats`, cAdvisor, Prometheus) untuk deteksi anomali penggunaan (mis. cryptomining).
+- **HTTPS** melalui reverse proxy (nginx) apabila dashboard diakses melalui domain internal.
 - **Backup PostgreSQL** berkala (`pg_dump`).
 
 ---
 
 ## Troubleshooting
 
-### "SSH dari PowerShell/terminal ga bisa connect ke WSL"
+### SSH dari terminal Windows/PowerShell gagal terhubung ke WSL
 
-Ini biasanya bukan masalah jaringan, tapi **host yang ditampilkan di dashboard salah**. Sebelum ada auto-detect (lihat changelog v4), `SSH_HOST_DISPLAY` di `.env.example` isinya placeholder contoh (`10.0.10.5`) — kalau lupa diganti, dashboard nampilin perintah SSH yang kelihatan valid tapi sebenarnya mengarah ke IP yang ga ada.
+Penyebab paling umum bukan masalah jaringan, melainkan host yang ditampilkan pada dashboard tidak akurat. Sejak v4.0, biarkan `SSH_HOST_DISPLAY` kosong pada `.env` — sistem akan otomatis:
+- Mendeteksi lingkungan WSL dan menggunakan `localhost` (memanfaatkan fitur bawaan WSL2 yang meneruskan port secara otomatis ke Windows)
+- Mendeteksi server Linux reguler dan memindai antarmuka jaringan untuk memperoleh IP LAN yang sesuai
 
-**Sejak v4**, biarkan `SSH_HOST_DISPLAY` kosong di `.env` — sistem otomatis:
-- Deteksi kalau jalan di WSL → pakai `localhost` (WSL2 punya fitur bawaan yang auto-forward port apa pun yang listen di WSL ke Windows lewat `localhost`, ga perlu tau IP internal WSL yang berubah-ubah tiap restart)
-- Deteksi kalau di server Linux biasa → scan network interface, ambil IP LAN yang paling masuk akal
-
-Cek log server saat startup, ada baris:
+Periksa log server saat startup:
 ```
 SSH host mahasiswa  : localhost  [auto-detect (WSL2 localhost forwarding)]
 ```
-Kalau hasilnya aneh/salah, override manual di `.env` dengan isi `SSH_HOST_DISPLAY` eksplisit — nilai manual selalu menang.
 
-Kalau host-nya sudah benar tapi tetap ga bisa connect, cek juga:
-- Container mahasiswa beneran udah jalan (`docker ps` di WSL, cari nama `student-<nim>-...`)
-- Docker Engine di WSL beneran aktif (bukan cuma ke-install tapi belum di-start)
-- Windows Firewall ga blokir port yang dipakai (jarang jadi masalah untuk localhost, tapi worth dicek kalau masih gagal)
+Apabila hasil deteksi tidak sesuai, lakukan override manual melalui `SSH_HOST_DISPLAY` pada `.env` — nilai manual senantiasa diprioritaskan.
 
-### "npm install error / native module crash (bcrypt, ssh2, dll)"
+Apabila host sudah sesuai namun koneksi tetap gagal, periksa:
+- Container mahasiswa benar-benar berjalan (`docker ps`, cari nama `student-<nim>-...`)
+- Docker Engine pada WSL aktif (bukan sekadar terinstal)
+- Windows Firewall tidak memblokir port yang digunakan
 
-Kemungkinan besar project ada di drive Windows (`/mnt/c/...`, `/mnt/e/...`, dst) yang di-mount ke WSL. Native module butuh compile C++ dan filesystem Unix-style yang ga reliable di DrvFs (jembatan WSL↔NTFS). Pindahin project ke filesystem native WSL (`~/projects/...`), install ulang di sana. Detail lengkap ada di riwayat percakapan/commit sebelumnya soal isu ini.
+### Konflik port PostgreSQL saat `docker compose up`
+
+Sejak v4.2, port PostgreSQL sisi host dapat dikonfigurasi melalui `DB_HOST_PORT` (default `5433`, bukan `5432`) untuk menghindari konflik dengan instance PostgreSQL lain yang mungkin sudah berjalan pada mesin yang sama. Apabila port `5433` juga sudah terpakai, sesuaikan nilai `DB_HOST_PORT` pada `.env` ke port lain yang tersedia.
+
+### Error native module saat `npm install` (bcrypt, ssh2, dsb.)
+
+Kemungkinan besar disebabkan proyek berada pada drive Windows (`/mnt/c/...`, `/mnt/e/...`, dsb.) yang di-mount ke WSL. Native module memerlukan proses kompilasi C++ dan operasi filesystem bergaya Unix yang tidak sepenuhnya reliable pada DrvFs (jembatan WSL↔NTFS). Solusi: pindahkan proyek ke filesystem native WSL (`~/projects/...`), kemudian install ulang dependency.
 
 ---
 
-## Kustomisasi cepat
+## Referensi Kustomisasi
 
-| Mau ubah apa | Di file mana |
+| Kebutuhan | Lokasi |
 |---|---|
 | TTL container | `.env` → `CONTAINER_TTL_HOURS` |
 | Limit container per mahasiswa | `.env` → `MAX_CONTAINER_PER_STUDENT` |
-| Package di container mahasiswa | `docker/Dockerfile.student` |
+| Package pada container mahasiswa | `docker/Dockerfile.student` |
 | Resource limit | `.env` → `CONTAINER_MEMORY_MB`, `CONTAINER_CPU_LIMIT`, `CONTAINER_DISK_QUOTA_MB` |
-| Warna/tema tampilan | `views/partials/head.ejs` (Tailwind config) |
-| Isi halaman admin | `views/admin/dashboard.ejs`, `src/services/adminService.js` |
+| Tema visual | `views/partials/head.ejs` (konfigurasi Tailwind) |
+| Konten admin panel | `views/admin/dashboard.ejs`, `src/services/adminService.js` |
+| Port PostgreSQL sisi host | `.env` → `DB_HOST_PORT` |
+| Level dan lokasi log | `.env` → `LOG_LEVEL`, `LOG_DIR` |

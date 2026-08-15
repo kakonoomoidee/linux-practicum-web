@@ -1,9 +1,13 @@
 const winston = require('winston');
 require('winston-daily-rotate-file');
-const path = require('path');
 
-const isProd = (process.env.NODE_ENV || 'development') === 'production';
-const logDir = process.env.LOG_DIR || path.join(__dirname, '..', '..', 'logs');
+// Catatan: config di-require lazily di dalam createLogger() supaya ga bikin
+// circular dependency (config/env.js sendiri ga butuh logger, tapi banyak
+// module lain butuh dua-duanya - urutan require di sini aman karena env.js
+// tidak balik require logger.js).
+const config = require('./env');
+
+const isProd = config.nodeEnv === 'production';
 
 // Format JSON terstruktur - dipakai buat file log dan console di production.
 // Cocok buat di-ingest tool monitoring/log aggregator (ELK, Loki, Datadog, dst)
@@ -33,7 +37,7 @@ const transports = [
   // File log selalu JSON (biar konsisten & gampang di-parse), terlepas dari NODE_ENV.
   // Rotasi harian, disimpan 14 hari, max 20MB per file sebelum ke-rotate juga.
   new winston.transports.DailyRotateFile({
-    dirname: logDir,
+    dirname: config.log.dir,
     filename: 'error-%DATE%.log',
     datePattern: 'YYYY-MM-DD',
     level: 'error',
@@ -42,7 +46,7 @@ const transports = [
     format: jsonFormat,
   }),
   new winston.transports.DailyRotateFile({
-    dirname: logDir,
+    dirname: config.log.dir,
     filename: 'combined-%DATE%.log',
     datePattern: 'YYYY-MM-DD',
     maxSize: '20m',
@@ -52,7 +56,7 @@ const transports = [
 ];
 
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || (isProd ? 'info' : 'debug'),
+  level: config.log.level,
   format: jsonFormat,
   transports,
   exitOnError: false, // error di logging sendiri jangan sampai crash aplikasi

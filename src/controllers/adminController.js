@@ -1,4 +1,5 @@
 const adminService = require('../services/adminService');
+const logService = require('../services/logService');
 const ServiceError = require('../utils/ServiceError');
 const logger = require('../config/logger');
 
@@ -53,4 +54,24 @@ async function destroyInstance(req, res) {
   }
 }
 
-module.exports = { loginPage, login, logout, dashboard, destroyInstance };
+async function logsPage(req, res) {
+  const level = req.query.level || 'all';
+  const search = req.query.q || '';
+  const limit = req.query.limit || 200;
+
+  try {
+    const result = await logService.readLogs({ level, search, limit });
+    res.render('admin/logs', {
+      adminUsername: req.session.adminUsername,
+      ...result,
+      filterLevel: level,
+      filterSearch: search,
+      filterLimit: limit,
+    });
+  } catch (err) {
+    logger.error(`Gagal baca file log: ${err.message}`, { stack: err.stack, adminUsername: req.session.adminUsername });
+    res.status(500).send('Gagal memuat log server. Cek permission folder log atau hubungi developer.');
+  }
+}
+
+module.exports = { loginPage, login, logout, dashboard, destroyInstance, logsPage };
