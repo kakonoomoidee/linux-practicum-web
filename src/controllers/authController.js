@@ -18,12 +18,19 @@ function handleServiceError(err, res) {
 
 async function login(req, res) {
   try {
-    const { nim, password } = req.body;
+    const { nim, password, remember_me } = req.body;
     const result = await authService.login(nim, password);
 
     req.session.nim = result.nim;
     req.session.nama = result.nama;
     req.session.firstLogin = !!result.firstLogin;
+
+    // "Ingat saya" - perpanjang umur cookie session dari default 8 jam jadi 30 hari.
+    // Kalau tidak dicentang, biarin default (session lebih pendek, lebih aman
+    // buat yang login dari komputer/lab bersama).
+    if (remember_me) {
+      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 hari
+    }
 
     return res.json({
       success: true,
