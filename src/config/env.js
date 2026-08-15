@@ -1,4 +1,7 @@
 require('dotenv').config();
+const { detectHost } = require('../utils/detectHost');
+
+const detectedHost = detectHost();
 
 module.exports = {
   port: process.env.PORT || 3000,
@@ -21,7 +24,8 @@ module.exports = {
   },
 
   ssh: {
-    hostDisplay: process.env.SSH_HOST_DISPLAY || 'IP_SERVER_KAMPUS',
+    hostDisplay: detectedHost.host,
+    hostDisplaySource: detectedHost.source,
     portMin: parseInt(process.env.SSH_PORT_MIN || '30000', 10),
     portMax: parseInt(process.env.SSH_PORT_MAX || '40000', 10),
   },

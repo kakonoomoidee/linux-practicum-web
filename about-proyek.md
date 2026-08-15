@@ -72,6 +72,19 @@ Versi pertama proyek ini pakai `better-sqlite3`, tapi native module ini rewel ba
 
 Di versi awal, kalau container di Docker dihapus manual/crash tapi record di database masih bilang `'running'`, mahasiswa akan **terus-menerus ditolak** bikin container baru (karena sistem mengira mereka masih punya 1 container aktif) — satu-satunya solusi waktu itu adalah admin hapus row itu manual di database. Ini jelas ga scalable. Solusinya: setiap kali mahasiswa mencoba bikin container baru dan sistem menemukan record lama yang `'running'`, sistem **verifikasi langsung ke Docker Engine** apakah container itu beneran masih hidup. Kalau ternyata sudah tidak ada, record lama otomatis dibersihkan tanpa campur tangan admin. Detail lengkap ada di README bagian "Self-Healing".
 
+### Kenapa SSH_HOST_DISPLAY sekarang auto-detect, bukan diisi manual di .env?
+
+Versi awal mewajibkan admin isi `SSH_HOST_DISPLAY` manual di `.env`, dengan contoh placeholder `10.0.10.5` di `.env.example`. Masalahnya: kalau admin lupa ganti placeholder itu (atau nilainya salah), dashboard tetap menampilkan perintah SSH yang terlihat valid tapi sebenarnya mengarah ke IP yang tidak ada — mahasiswa (atau developer yang lagi testing) akan bingung kenapa `ssh` gagal terus, padahal semuanya "kelihatan" jalan normal.
+
+Sekarang default-nya auto-detect (`src/utils/detectHost.js`):
+- Kalau terdeteksi jalan di **WSL** (env var `WSL_DISTRO_NAME` ada) → otomatis pakai `localhost`, memanfaatkan fitur bawaan WSL2 yang auto-forward port ke Windows tanpa perlu tahu IP internal WSL yang berubah-ubah tiap restart.
+- Kalau di **server Linux beneran** → scan network interface, ambil IPv4 non-internal yang paling masuk akal (skip loopback dan interface virtual Docker).
+- Manual override di `.env` **selalu menang** kalau diisi — berguna untuk server dengan banyak network interface di mana auto-detect bisa salah pilih.
+
+Supaya app bisa "melihat" network interface milik host yang sebenarnya (bukan network internal Docker Compose-nya sendiri), service `app` di `docker-compose.yml` pakai `network_mode: host`. Konsekuensinya, app connect ke database lewat `127.0.0.1:5432` (bukan nama service `db`), karena DNS antar-service Docker Compose cuma jalan di network bridge default. Trade-off ini sepadan karena masalah "SSH gagal karena host salah" jauh lebih sering terjadi dan lebih membingungkan daripada kompleksitas tambahan di `docker-compose.yml`.
+
+**Catatan kompatibilitas:** `network_mode: host` butuh Docker Engine asli di Linux/WSL2, kurang reliable di Docker Desktop (Windows/Mac) karena virtualisasi networking-nya beda. Untuk kasus itu, isi `SSH_HOST_DISPLAY` manual di `.env`.
+
 ### Kenapa EJS (server-rendered), bukan SPA client-side seperti versi awal?
 
 Versi pertama pakai vanilla JS yang nge-swap tampilan halaman di client (`login` → `change-password` → `dashboard` semua dalam satu HTML, disembunyikan/ditampilkan pakai class `hidden`). Ini menyebabkan bug input password ga bisa diketik dengan normal (masalah state management di client yang ga perlu terjadi kalau tiap halaman punya route-nya sendiri). Pindah ke EJS server-rendered per-route menyederhanakan alur dan menghilangkan kelas bug itu sepenuhnya.
