@@ -120,6 +120,17 @@ Hasil deteksi dan alasannya di-log jelas saat server startup (`SSH host mahasisw
 - `scripts/seed.js` — membuat akun admin pertama kali. **Aman dijalankan berkali-kali**: kalau akun admin sudah ada, tidak akan ditimpa. Kalau `ADMIN_PASSWORD` di `.env` dikosongkan, password di-generate acak (16 karakter, aman) dan ditampilkan **satu kali saja** di terminal.
 - `scripts/import-students.js` — import daftar mahasiswa dari CSV (`nim,nama`) hasil export elearning. NIM yang sudah ada di-skip (tidak menimpa password yang sudah diganti mahasiswa), jadi aman dijalankan ulang tiap semester untuk kelas baru.
 
+### 4.4 Logging & Monitoring
+
+- **`src/config/logger.js`** — instance Winston terpusat, dipakai di seluruh layer (services, controllers, cron, db). Format JSON buat file & console production, format berwarna enak dibaca buat console development.
+- **`src/middleware/requestLogger.js`** — log setiap HTTP request masuk (method, path, status, durasi, IP, NIM), dengan `requestId` unik per request (juga dikirim balik lewat header `X-Request-Id`) buat memudahkan tracing kalau ada laporan error.
+- File log tersimpan di `logs/`, dipisah jadi `error-YYYY-MM-DD.log` (cuma level error) dan `combined-YYYY-MM-DD.log` (semua level), rotasi harian otomatis, disimpan 14 hari.
+- Di Docker Compose, folder `logs/` di-mount sebagai volume (`./logs:/app/logs`) — jadi log persist walau container di-restart/rebuild, dan bisa langsung di-`tail` dari host tanpa masuk ke dalam container.
+- Log penting punya field `event` yang konsisten (`container_created`, `container_self_heal`, `container_rollback`, `container_orphan_warning`, `admin_login_success`, `student_login_failed`, dst) — memudahkan filter/grep, dan siap di-pipe ke tool monitoring beneran (ELK, Grafana Loki, dll) kalau nanti dibutuhkan karena formatnya sudah JSON terstruktur.
+- Semua `console.log`/`console.error` yang sebelumnya tersebar di berbagai file sudah dimigrasikan ke logger ini — konsisten satu titik konfigurasi buat semua output log aplikasi.
+
+**File terkait:** `src/config/logger.js`, `src/middleware/requestLogger.js`, lihat juga README bagian "Monitoring & Logs" untuk cara pakai sehari-hari.
+
 ---
 
 ## 5. Keamanan yang Sudah Diterapkan

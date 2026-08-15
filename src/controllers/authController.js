@@ -1,5 +1,6 @@
 const authService = require('../services/authService');
 const ServiceError = require('../utils/ServiceError');
+const logger = require('../config/logger');
 
 const errorStatusMap = {
   VALIDATION_ERROR: 400,
@@ -7,12 +8,12 @@ const errorStatusMap = {
   NOT_FOUND: 404,
 };
 
-function handleServiceError(err, res) {
+function handleServiceError(err, res, req) {
   if (err instanceof ServiceError) {
     const status = errorStatusMap[err.code] || 400;
     return res.status(status).json({ success: false, code: status, message: err.message, data: err.meta || null });
   }
-  console.error('[authController] Unexpected error:', err);
+  logger.error(`Unexpected error di authController: ${err.message}`, { stack: err.stack, requestId: req && req.requestId });
   return res.status(500).json({ success: false, code: 500, message: 'Terjadi kesalahan pada server', data: null });
 }
 
@@ -39,7 +40,10 @@ async function login(req, res) {
       data: { nim: result.nim, nama: result.nama, first_login: !!result.firstLogin },
     });
   } catch (err) {
-    return handleServiceError(err, res);
+    if (err instanceof ServiceError && err.code === 'INVALID_CREDENTIALS') {
+      logger.warn(`Percobaan login mahasiswa gagal`, { attemptedNim: req.body.nim, ip: req.ip, event: 'student_login_failed' });
+    }
+    return handleServiceError(err, res, req);
   }
 }
 
@@ -48,9 +52,10 @@ async function changePassword(req, res) {
     const { old_password, new_password } = req.body;
     await authService.changePassword(req.session.nim, old_password, new_password);
     req.session.firstLogin = false;
+    logger.info(`Password berhasil diganti`, { nim: req.session.nim, event: 'password_changed' });
     return res.json({ success: true, code: 200, message: 'Password berhasil diganti', data: null });
   } catch (err) {
-    return handleServiceError(err, res);
+    return handleServiceError(err, res, req);
   }
 }
 
@@ -64,7 +69,9 @@ async function me(req, res) {
 }
 
 async function logout(req, res) {
+  const nim = req.session.nim;
   req.session.destroy(() => {
+    logger.info(`Logout`, { nim, event: 'student_logout' });
     res.json({ success: true, code: 200, message: 'Logout berhasil', data: null });
   });
 }

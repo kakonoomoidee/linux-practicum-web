@@ -5,6 +5,8 @@ const pgSession = require('connect-pg-simple')(session);
 const path = require('path');
 
 const config = require('./src/config/env');
+const logger = require('./src/config/logger');
+const requestLogger = require('./src/middleware/requestLogger');
 const { pool } = require('./src/db/connection');
 const { initSchema } = require('./src/db/initSchema');
 
@@ -20,6 +22,13 @@ const app = express();
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// Kalau app di belakang reverse proxy (nginx dll), ini bikin req.ip ambil IP asli
+// mahasiswa dari header X-Forwarded-For, bukan IP proxy-nya. Aman diaktifkan
+// walau ga pakai proxy sekalipun.
+app.set('trust proxy', true);
+
+app.use(requestLogger);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -57,7 +66,12 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error('[server] Unhandled error:', err);
+  logger.error(`Unhandled error: ${err.message}`, {
+    requestId: req.requestId,
+    stack: err.stack,
+    method: req.method,
+    path: req.originalUrl,
+  });
   if (req.path.startsWith('/api/')) {
     return res.status(500).json({ success: false, code: 500, message: 'Terjadi kesalahan pada server', data: null });
   }
@@ -76,8 +90,8 @@ async function initSchemaWithRetry(maxAttempts = 10, delayMs = 3000) {
       return;
     } catch (err) {
       if (attempt === maxAttempts) throw err;
-      console.warn(`[server] Belum bisa konek ke PostgreSQL (percobaan ${attempt}/${maxAttempts}): ${err.message}`);
-      console.warn(`[server] Coba lagi dalam ${delayMs / 1000} detik...`);
+      logger.warn(`Belum bisa konek ke PostgreSQL (percobaan ${attempt}/${maxAttempts}): ${err.message}`);
+      logger.warn(`Coba lagi dalam ${delayMs / 1000} detik...`);
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
@@ -87,28 +101,30 @@ async function start() {
   try {
     await initSchemaWithRetry();
   } catch (err) {
-    console.error('[server] Gagal konek/setup PostgreSQL setelah beberapa kali percobaan. Pastikan DB aktif dan konfigurasi sudah benar:', err.message);
+    logger.error(`Gagal konek/setup PostgreSQL setelah beberapa kali percobaan: ${err.message}`, { stack: err.stack });
     process.exit(1);
   }
 
   try {
     await ensureNetwork();
   } catch (err) {
-    console.warn('[server] Gagal setup Docker network di awal (akan dicoba lagi saat create container):', err.message);
+    logger.warn(`Gagal setup Docker network di awal (akan dicoba lagi saat create container): ${err.message}`);
   }
 
   startCleanupCron();
 
   app.listen(config.port, () => {
-    console.log(`\n🚀 Server jalan di http://localhost:${config.port}`);
-    console.log(`   Dashboard mahasiswa : http://localhost:${config.port}/login`);
-    console.log(`   Dashboard admin     : http://localhost:${config.port}/admin/login`);
-    console.log(`   SSH host mahasiswa  : ${config.ssh.hostDisplay}  [${config.ssh.hostDisplaySource}]`);
+    logger.info(`Server jalan di http://localhost:${config.port}`, {
+      dashboardMahasiswa: `http://localhost:${config.port}/login`,
+      dashboardAdmin: `http://localhost:${config.port}/admin/login`,
+      sshHost: config.ssh.hostDisplay,
+      sshHostSource: config.ssh.hostDisplaySource,
+      logLevel: logger.level,
+      logDir: process.env.LOG_DIR || 'logs/',
+    });
     if (config.ssh.hostDisplaySource.startsWith('fallback')) {
-      console.warn(`   ⚠️  Auto-detect IP gagal total, mahasiswa TIDAK akan bisa SSH pakai host ini.`);
-      console.warn(`   ⚠️  Isi SSH_HOST_DISPLAY manual di .env dengan IP LAN server yang benar.`);
+      logger.warn('Auto-detect IP gagal total, mahasiswa TIDAK akan bisa SSH pakai host ini. Isi SSH_HOST_DISPLAY manual di .env dengan IP LAN server yang benar.');
     }
-    console.log(`   Pastikan Docker daemon aktif dan image "${config.docker.studentImage}" sudah dibuild.\n`);
   });
 }
 

@@ -1,5 +1,6 @@
 const adminService = require('../services/adminService');
 const ServiceError = require('../utils/ServiceError');
+const logger = require('../config/logger');
 
 function loginPage(req, res) {
   res.render('admin/login', { error: null });
@@ -11,15 +12,21 @@ async function login(req, res) {
     const admin = await adminService.login(username, password);
     req.session.adminId = admin.id;
     req.session.adminUsername = admin.username;
+    logger.info(`Admin login berhasil`, { adminUsername: admin.username, event: 'admin_login_success' });
     return res.redirect('/admin');
   } catch (err) {
+    logger.warn(`Percobaan login admin gagal`, { attemptedUsername: username, ip: req.ip, event: 'admin_login_failed' });
     const message = err instanceof ServiceError ? err.message : 'Terjadi kesalahan pada server';
     return res.status(err instanceof ServiceError ? 401 : 500).render('admin/login', { error: message });
   }
 }
 
 function logout(req, res) {
-  req.session.destroy(() => res.redirect('/admin/login'));
+  const adminUsername = req.session.adminUsername;
+  req.session.destroy(() => {
+    logger.info(`Admin logout`, { adminUsername, event: 'admin_logout' });
+    res.redirect('/admin/login');
+  });
 }
 
 async function dashboard(req, res) {
@@ -31,7 +38,7 @@ async function dashboard(req, res) {
       notice: req.query.notice || null,
     });
   } catch (err) {
-    console.error('[adminController] Gagal load dashboard:', err);
+    logger.error(`Gagal load dashboard admin: ${err.message}`, { stack: err.stack, adminUsername: req.session.adminUsername });
     res.status(500).send('Gagal memuat data dashboard admin. Cek log server.');
   }
 }

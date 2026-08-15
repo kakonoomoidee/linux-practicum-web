@@ -1,5 +1,6 @@
 const { Pool } = require('pg');
 const config = require('../config/env');
+const logger = require('../config/logger');
 
 const pool = new Pool(
   config.db.connectionString
@@ -15,7 +16,7 @@ const pool = new Pool(
 
 pool.on('error', (err) => {
   // Error di koneksi idle di pool - jangan sampai crash seluruh proses
-  console.error('[db] Unexpected error pada idle client:', err.message);
+  logger.error(`Unexpected error pada idle client PostgreSQL: ${err.message}`, { stack: err.stack });
 });
 
 const query = (text, params) => pool.query(text, params);

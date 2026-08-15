@@ -1,5 +1,6 @@
 const containerService = require('../services/containerService');
 const ServiceError = require('../utils/ServiceError');
+const logger = require('../config/logger');
 
 const errorStatusMap = {
   VALIDATION_ERROR: 400,
@@ -10,12 +11,12 @@ const errorStatusMap = {
   DB_INSERT_FAILED: 500,
 };
 
-function handleServiceError(err, res) {
+function handleServiceError(err, res, req) {
   if (err instanceof ServiceError) {
     const status = errorStatusMap[err.code] || 400;
     return res.status(status).json({ success: false, code: status, message: err.message, data: err.meta || null });
   }
-  console.error('[containerController] Unexpected error:', err);
+  logger.error(`Unexpected error di containerController: ${err.message}`, { stack: err.stack, requestId: req && req.requestId, nim: req && req.session && req.session.nim });
   return res.status(500).json({ success: false, code: 500, message: 'Terjadi kesalahan pada server', data: null });
 }
 
@@ -24,13 +25,14 @@ async function list(req, res) {
     const data = await containerService.listForStudent(req.session.nim);
     return res.json({ success: true, code: 200, message: 'OK', data });
   } catch (err) {
-    return handleServiceError(err, res);
+    return handleServiceError(err, res, req);
   }
 }
 
 async function create(req, res) {
   try {
     const data = await containerService.createForStudent(req.session.nim);
+    logger.info(`Container berhasil dibuat`, { nim: req.session.nim, containerName: data.container_name, event: 'container_created' });
     return res.status(201).json({
       success: true,
       code: 201,
@@ -38,16 +40,17 @@ async function create(req, res) {
       data,
     });
   } catch (err) {
-    return handleServiceError(err, res);
+    return handleServiceError(err, res, req);
   }
 }
 
 async function destroy(req, res) {
   try {
     await containerService.destroyForStudent(req.session.nim, req.params.id);
+    logger.info(`Container dihapus mahasiswa`, { nim: req.session.nim, containerId: req.params.id, event: 'container_destroyed_by_student' });
     return res.json({ success: true, code: 200, message: 'Container berhasil dihapus', data: null });
   } catch (err) {
-    return handleServiceError(err, res);
+    return handleServiceError(err, res, req);
   }
 }
 

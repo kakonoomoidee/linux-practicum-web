@@ -63,6 +63,8 @@ services:
       CLEANUP_CRON_PATTERN: ${CLEANUP_CRON_PATTERN:-*/10 * * * *}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      LOG_LEVEL: ${LOG_LEVEL:-}
+      LOG_DIR: /app/logs
     # Tidak ada "ports:" di sini - dengan network_mode: host, port yang di-listen app
     # (PORT=3000) otomatis langsung bisa diakses di host lewat http://<ip-host>:3000,
     # tanpa perlu mapping port manual.
@@ -70,6 +72,10 @@ services:
       # WAJIB: ini yang bikin app di dalam container bisa "mengontrol" Docker Engine
       # milik HOST buat spawn container mahasiswa (sibling containers, bukan Docker-in-Docker).
       - /var/run/docker.sock:/var/run/docker.sock
+      # Log di-mount ke host supaya persist walau container di-restart/rebuild,
+      # dan gampang diakses langsung dari host buat monitoring (tail -f logs/combined-*.log)
+      # tanpa perlu masuk ke dalam container.
+      - ./logs:/app/logs
 
 volumes:
   pgdata:

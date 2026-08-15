@@ -4,6 +4,14 @@ Platform buat mahasiswa "minjem" container Linux full lewat browser (self-servic
 
 📖 Dokumentasi lengkap: **[about-proyek.md](./about-proyek.md)** (latar belakang & alasan keputusan teknis) dan **[WALKTHROUGH.md](./WALKTHROUGH.md)** (tur fitur-per-fitur yang sudah dibangun).
 
+📖 Dokumentasi lengkap: **[about-proyek.md](./about-proyek.md)** (latar belakang & alasan keputusan teknis) dan **[WALKTHROUGH.md](./WALKTHROUGH.md)** (tur fitur-per-fitur yang sudah dibangun).
+
+**v4.1 changelog:**
+- ✅ **Structured logging** (Winston) — log level standar industri (`error`/`warn`/`info`/`http`/`debug`), format JSON buat file & production console, format berwarna enak dibaca buat development
+- ✅ **Request logging** — tiap HTTP request dapat `requestId` unik buat tracing, di-log dengan method/path/status/durasi/IP/NIM
+- ✅ **File log dengan rotasi otomatis** — `logs/error-YYYY-MM-DD.log` (cuma error) dan `logs/combined-YYYY-MM-DD.log` (semua level), rotasi harian, disimpan 14 hari, di-mount sebagai volume di Docker Compose biar persist & gampang di-`tail`
+- ✅ Semua `console.log`/`console.error` di seluruh codebase diganti logger terstruktur
+
 **v4 changelog:**
 - ✅ **Auto-detect IP/host SSH** — ga perlu isi `SSH_HOST_DISPLAY` manual lagi. Otomatis pakai `localhost` kalau jalan di WSL, atau scan network interface kalau di server Linux biasa. Manual override tetap bisa lewat `.env` kalau perlu.
 - ✅ **Remember me** saat login — session bertahan 30 hari kalau dicentang (default: session lebih pendek)
@@ -61,7 +69,9 @@ Docker provisioning (`dockerService.js`) diperlakukan sebagai service tersendiri
 ├── .dockerignore
 ├── server.js                          # Entry point
 ├── src/
-│   ├── config/env.js                  # Semua config dari .env di satu tempat
+│   ├── config/
+│   │   ├── env.js                     # Semua config dari .env di satu tempat
+│   │   └── logger.js                  # ⭐ Winston structured logger (JSON + rotasi file)
 │   ├── db/
 │   │   ├── connection.js              # PostgreSQL connection pool
 │   │   ├── schema.sql                 # Schema (idempotent)
@@ -83,16 +93,18 @@ Docker provisioning (`dockerService.js`) diperlakukan sebagai service tersendiri
 │   │   └── adminController.js
 │   ├── middleware/
 │   │   ├── auth.js                    # Guard mahasiswa
-│   │   └── adminAuth.js               # Guard admin
+│   │   ├── adminAuth.js               # Guard admin
+│   │   └── requestLogger.js           # ⭐ Log tiap HTTP request + requestId buat tracing
 │   ├── routes/
 │   │   ├── authRoutes.js              # /api/auth/*
 │   │   ├── containerRoutes.js         # /api/containers/*
 │   │   ├── viewRoutes.js              # /login, /dashboard, dst (halaman)
 │   │   └── adminRoutes.js             # /admin/*
 │   ├── cron/cleanupJob.js             # Auto-hapus container expired
-│   ├── utils/
-│   │   ├── ServiceError.js            # Error class custom antar layer
-│   │   └── detectHost.js              # ⭐ Auto-detect IP/host buat SSH mahasiswa
+│   └── utils/
+│       ├── ServiceError.js            # Error class custom antar layer
+│       └── detectHost.js              # ⭐ Auto-detect IP/host buat SSH mahasiswa
+├── logs/                              # File log (rotasi harian, di-gitignore isinya)
 ├── views/                             # EJS templates (Tailwind via CDN)
 │   ├── partials/
 │   │   ├── head.ejs
@@ -302,6 +314,54 @@ pm2 save && pm2 startup
 ```
 
 ---
+
+## Monitoring & Logs
+
+Semua aktivitas penting (login, bikin/hapus container, self-healing, rollback, error) di-log terstruktur pakai **Winston**, format JSON, dengan level standar industri: `error` > `warn` > `info` > `http` > `debug`.
+
+### Lihat log real-time
+
+```bash
+# Lewat Docker Compose (paling gampang)
+npm run docker:logs
+# atau langsung:
+docker compose logs -f app
+
+# Lewat file (kalau jalan manual tanpa Docker)
+npm run logs:tail          # semua level
+npm run logs:errors        # cuma error
+```
+
+### Struktur file log
+
+```
+logs/
+├── combined-2026-08-15.log   # SEMUA level log
+├── error-2026-08-15.log      # CUMA level error (gampang cari masalah)
+└── ...                        # rotasi harian, auto-hapus setelah 14 hari
+```
+
+Tiap baris adalah satu objek JSON valid, contoh:
+```json
+{"level":"info","message":"Container berhasil dibuat","nim":"20220140020","containerName":"student-20220140020-...","event":"container_created","timestamp":"2026-08-15T07:23:00.000Z"}
+```
+
+Field `event` konsisten di banyak log penting (`container_created`, `container_self_heal`, `container_rollback`, `admin_login_success`, `student_login_failed`, dst) — berguna kalau nanti mau di-filter/agregasi (`grep '"event":"container_self_heal"' logs/combined-*.log`), atau di-pipe ke tool monitoring beneran (ELK, Grafana Loki, Datadog, dll) karena formatnya udah JSON siap-pakai.
+
+### Tracing satu request tertentu
+
+Setiap request dapat `requestId` unik (juga dikembalikan lewat response header `X-Request-Id`). Kalau ada laporan error dari mahasiswa/admin, minta mereka screenshot/kirim request ID-nya (bisa dilihat di DevTools browser → Network tab → response header), lalu:
+```bash
+grep "<request-id>" logs/combined-*.log
+```
+Ini nunjukin seluruh jejak request itu, termasuk error detail kalau ada.
+
+### Atur level log
+
+Default: `debug` kalau `NODE_ENV` bukan `production`, `info` kalau production. Override manual lewat `.env`:
+```
+LOG_LEVEL=warn   # cuma tampilkan warning ke atas, misalnya buat produksi yang santai
+```
 
 ## Admin Panel
 

@@ -5,6 +5,7 @@ const dockerService = require('./dockerService');
 const activityLogRepository = require('../repositories/activityLogRepository');
 const config = require('../config/env');
 const ServiceError = require('../utils/ServiceError');
+const logger = require('../config/logger');
 
 async function login(username, password) {
   if (!username || !password) {
@@ -64,11 +65,15 @@ async function forceDestroyInstance(containerDbId) {
   try {
     await dockerService.destroyContainer(row.container_id);
   } catch (err) {
-    console.error(`[adminService] Gagal hapus container "${row.container_name}" di Docker (tetap ditandai destroyed di DB):`, err.message);
+    logger.error(`Gagal hapus container di Docker (tetap ditandai destroyed di DB): ${err.message}`, {
+      nim: row.nim,
+      containerName: row.container_name,
+    });
   }
 
   await containerRepository.markDestroyed(row.id);
   await activityLogRepository.log(row.nim, 'container_destroyed_by_admin', row.container_name);
+  logger.info(`Instance dihapus paksa oleh admin`, { nim: row.nim, containerName: row.container_name, event: 'admin_force_destroy' });
 }
 
 module.exports = { login, getDashboardData, forceDestroyInstance };

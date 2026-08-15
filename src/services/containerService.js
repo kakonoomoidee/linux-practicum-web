@@ -4,6 +4,7 @@ const activityLogRepository = require('../repositories/activityLogRepository');
 const dockerService = require('./dockerService');
 const config = require('../config/env');
 const ServiceError = require('../utils/ServiceError');
+const logger = require('../config/logger');
 
 function toPublicContainer(row) {
   return {
@@ -51,7 +52,7 @@ async function createForStudent(nim) {
       stillAlive = await dockerService.isContainerAlive(existing.container_id);
     } catch (err) {
       // Docker daemon lagi bermasalah - jangan asal hapus record, lebih aman gagalkan dengan pesan jelas
-      console.error('[containerService] Gagal cek status container ke Docker Engine:', err.message);
+      logger.error(`Gagal cek status container ke Docker Engine: ${err.message}`, { nim, containerId: existing.container_id });
       throw new ServiceError(
         'Gagal menghubungi Docker Engine untuk memverifikasi container lama. Coba lagi sebentar lagi.',
         'DOCKER_UNREACHABLE'
@@ -69,9 +70,12 @@ async function createForStudent(nim) {
     // Self-healing: record di DB basi (container-nya udah ga ada di Docker) -> bersihin otomatis
     await containerRepository.markDestroyed(existing.id);
     await activityLogRepository.log(nim, 'container_auto_cleaned_stale', existing.container_name);
-    console.warn(
-      `[containerService] Auto-cleaned record basi untuk NIM ${nim} (container "${existing.container_name}" sudah tidak ada di Docker)`
-    );
+    logger.warn(`Auto-cleaned record basi (container sudah tidak ada di Docker)`, {
+      nim,
+      containerName: existing.container_name,
+      containerId: existing.container_id,
+      event: 'container_self_heal',
+    });
   }
 
   const activeCount = await containerRepository.countRunningByNim(nim);
@@ -87,7 +91,7 @@ async function createForStudent(nim) {
     const usedPorts = await containerRepository.findAllRunningPorts();
     spawnResult = await dockerService.spawnContainer(nim, usedPorts);
   } catch (err) {
-    console.error('[containerService] Gagal spawn container di Docker:', err);
+    logger.error(`Gagal spawn container di Docker: ${err.message}`, { nim, stack: err.stack });
     throw new ServiceError(
       'Gagal membuat container di Docker Engine. Coba lagi atau hubungi asisten dosen.',
       'DOCKER_SPAWN_FAILED'
@@ -115,18 +119,20 @@ async function createForStudent(nim) {
       ssh_password: spawnResult.linuxPassword, // ditampilkan sekali saja ke caller
     };
   } catch (err) {
-    console.error('[containerService] Gagal simpan container ke DB, rollback container di Docker...', err);
+    logger.error(`Gagal simpan container ke DB, rollback container di Docker...: ${err.message}`, { nim, containerName: spawnResult.containerName, stack: err.stack });
     try {
       await dockerService.destroyContainer(spawnResult.containerId);
-      console.warn(`[containerService] Rollback sukses: container "${spawnResult.containerName}" dihapus lagi dari Docker`);
+      logger.warn(`Rollback sukses: container dihapus lagi dari Docker`, { nim, containerName: spawnResult.containerName, event: 'container_rollback' });
     } catch (cleanupErr) {
       // Ini kasus terburuk: container jadi orphan (jalan tapi ga tercatat di DB).
       // Log sejelas mungkin biar gampang ditemukan & dibersihkan manual oleh admin.
-      console.error(
-        `[containerService] ROLLBACK GAGAL. Container "${spawnResult.containerName}" (id: ${spawnResult.containerId}) ` +
-        `kemungkinan jadi ORPHAN di Docker - perlu dicek & dihapus manual oleh admin.`,
-        cleanupErr
-      );
+      logger.error(`ROLLBACK GAGAL - container kemungkinan jadi ORPHAN di Docker, perlu dicek manual oleh admin`, {
+        nim,
+        containerName: spawnResult.containerName,
+        containerId: spawnResult.containerId,
+        cleanupError: cleanupErr.message,
+        event: 'container_orphan_warning',
+      });
     }
     throw new ServiceError(
       'Gagal menyimpan data container ke database. Perubahan sudah di-rollback otomatis, silakan coba lagi.',
@@ -146,7 +152,7 @@ async function destroyForStudent(nim, containerDbId) {
   } catch (err) {
     // Tetap lanjut tandai destroyed di DB walau hapus di Docker gagal,
     // supaya mahasiswa tidak keblokir - tapi log biar admin bisa cross-check.
-    console.error(`[containerService] Gagal hapus container "${row.container_name}" di Docker, tetap tandai destroyed di DB:`, err.message);
+    logger.error(`Gagal hapus container di Docker, tetap tandai destroyed di DB: ${err.message}`, { nim, containerName: row.container_name });
   }
 
   await containerRepository.markDestroyed(row.id);
