@@ -1,6 +1,14 @@
-# 🐧 Platform Praktikum Linux — Container On-Demand (v3)
+# 🐧 Platform Praktikum Linux — Container On-Demand (v4)
 
 Platform buat mahasiswa "minjem" container Linux full lewat browser (self-service), browser cuma jadi **entry point** — mahasiswa tetap SSH pakai terminal mereka sendiri. Container otomatis dihapus setelah TTL tertentu (default 24 jam).
+
+📖 Dokumentasi lengkap: **[about-proyek.md](./about-proyek.md)** (latar belakang & alasan keputusan teknis) dan **[WALKTHROUGH.md](./WALKTHROUGH.md)** (tur fitur-per-fitur yang sudah dibangun).
+
+**v4 changelog:**
+- ✅ **Remember me** saat login — session bertahan 30 hari kalau dicentang (default: session lebih pendek)
+- ✅ **Toggle show/hide password** (ikon mata) di semua field password
+- ✅ **Skeleton loading** di dashboard saat memuat status, membuat container baru, dan menghapus container — biar ga terasa "diam" pas nunggu proses Docker
+- ✅ Dokumentasi baru: `about-proyek.md` (source of truth) dan `WALKTHROUGH.md` (tur fitur)
 
 **v3 changelog:**
 - ✅ Layered architecture (Controller → Service → Repository)
@@ -10,6 +18,7 @@ Platform buat mahasiswa "minjem" container Linux full lewat browser (self-servic
 - ✅ **Self-healing**: kalau ada container "nyangkut" di DB (misal container-nya udah dihapus manual/crash di Docker tapi record-nya masih 'running'), sistem otomatis mendeteksi & membersihkan record itu sendiri saat mahasiswa coba bikin container baru — **tidak perlu lagi hapus tabel manual**
 - ✅ Session disimpan di PostgreSQL (bukan in-memory), aman dari memory leak & survive restart
 - ✅ Fix bug input login yang ga bisa diketik (pindah dari SPA client-side ke server-rendered page per route)
+- ✅ Semua dibungkus **Docker Compose** (app + database), tinggal `docker compose up`
 
 > ⚠️ Didesain untuk diakses **hanya dari jaringan kampus/LAN**, tidak expose ke public internet.
 
@@ -44,7 +53,9 @@ Docker provisioning (`dockerService.js`) diperlakukan sebagai service tersendiri
 
 ```
 .
-├── docker-compose.yml                 # ⭐ Orkestrasi app + PostgreSQL jadi satu perintah
+├── about-proyek.md                    # ⭐ Source of truth: latar belakang & alasan keputusan teknis
+├── WALKTHROUGH.md                     # ⭐ Tur fitur-per-fitur yang sudah dibangun
+├── docker-compose.yml                 # Orkestrasi app + PostgreSQL jadi satu perintah
 ├── Dockerfile                         # Image buat web app (multi-stage build)
 ├── .dockerignore
 ├── server.js                          # Entry point
@@ -80,14 +91,16 @@ Docker provisioning (`dockerService.js`) diperlakukan sebagai service tersendiri
 │   ├── cron/cleanupJob.js             # Auto-hapus container expired
 │   └── utils/ServiceError.js          # Error class custom antar layer
 ├── views/                             # EJS templates (Tailwind via CDN)
-│   ├── partials/head.ejs
+│   ├── partials/
+│   │   ├── head.ejs
+│   │   └── password-field.ejs         # Reusable input password + toggle show/hide
 │   ├── login.ejs
 │   ├── change-password.ejs
 │   ├── dashboard.ejs
 │   └── admin/
 │       ├── login.ejs
 │       └── dashboard.ejs              # Monitoring instance + usage stats
-├── public/js/                         # JS minimal buat AJAX call ke /api/*
+├── public/js/                         # JS minimal buat AJAX call ke /api/* (termasuk password-toggle.js)
 ├── docker/                            # Dockerfile + entrypoint image mahasiswa
 ├── scripts/
 │   ├── seed.js                        # ⭐ Seed admin AMAN (password random kalau ga diisi)

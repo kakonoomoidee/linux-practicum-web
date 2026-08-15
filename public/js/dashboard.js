@@ -9,12 +9,25 @@ async function api(method, url, body) {
   return { ok: res.ok, ...json };
 }
 
+function showSkeleton(label) {
+  document.getElementById('skeleton-label').textContent = label || 'Memuat...';
+  document.getElementById('skeleton-box').classList.remove('hidden');
+  document.getElementById('no-container-box').classList.add('hidden');
+  document.getElementById('container-box').classList.add('hidden');
+}
+
+function hideSkeleton() {
+  document.getElementById('skeleton-box').classList.add('hidden');
+}
+
 function showNoContainer() {
+  hideSkeleton();
   document.getElementById('no-container-box').classList.remove('hidden');
   document.getElementById('container-box').classList.add('hidden');
 }
 
 function renderContainer(c, password) {
+  hideSkeleton();
   document.getElementById('no-container-box').classList.add('hidden');
   document.getElementById('container-box').classList.remove('hidden');
 
@@ -30,11 +43,13 @@ function renderContainer(c, password) {
 }
 
 async function loadContainers() {
+  showSkeleton('Memuat status container...');
   const result = await api('GET', '/api/containers');
   const errorEl = document.getElementById('dash-error');
   errorEl.textContent = '';
 
   if (!result.ok) {
+    hideSkeleton();
     errorEl.textContent = result.message;
     return;
   }
@@ -48,17 +63,15 @@ async function loadContainers() {
 
 document.getElementById('btn-create-container').addEventListener('click', async () => {
   const errorEl = document.getElementById('dash-error');
-  const btn = document.getElementById('btn-create-container');
   errorEl.textContent = '';
-  btn.disabled = true;
-  btn.textContent = 'Membuat container... (bisa beberapa detik)';
+
+  showSkeleton('Membuat container baru... (bisa beberapa detik)');
 
   const result = await api('POST', '/api/containers', {});
 
-  btn.disabled = false;
-  btn.textContent = '🚀 Buat Container Baru';
-
   if (!result.ok) {
+    hideSkeleton();
+    showNoContainer();
     errorEl.textContent = result.message;
     return;
   }
@@ -69,16 +82,24 @@ document.getElementById('btn-create-container').addEventListener('click', async 
 document.getElementById('btn-destroy-container').addEventListener('click', async () => {
   if (!confirm('Yakin mau hapus container? Semua data di dalamnya akan hilang.')) return;
 
+  const errorEl = document.getElementById('dash-error');
+  errorEl.textContent = '';
+
   const listResult = await api('GET', '/api/containers');
   if (!listResult.ok || listResult.data.length === 0) return;
 
   const id = listResult.data[0].id;
+
+  showSkeleton('Menghapus container...');
+
   const del = await api('DELETE', `/api/containers/${id}`);
 
   if (del.ok) {
     showNoContainer();
   } else {
-    document.getElementById('dash-error').textContent = del.message;
+    hideSkeleton();
+    renderContainer(listResult.data[0]); // balikin tampilan container karena gagal dihapus
+    errorEl.textContent = del.message;
   }
 });
 

@@ -3,6 +3,7 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
 
   const nim = document.getElementById('login-nim').value.trim();
   const password = document.getElementById('login-password').value;
+  const remember_me = document.getElementById('login-remember').checked;
   const errorEl = document.getElementById('login-error');
   const btn = document.getElementById('btn-login-submit');
 
@@ -15,7 +16,7 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify({ nim, password }),
+      body: JSON.stringify({ nim, password, remember_me }),
     });
     const json = await res.json();
 
