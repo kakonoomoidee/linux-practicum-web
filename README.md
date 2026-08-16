@@ -6,6 +6,22 @@ Platform penyediaan lingkungan Linux berbasis container untuk kebutuhan praktiku
 
 > ⚠️ **Catatan desain:** platform ini dirancang untuk diakses eksklusif dari jaringan kampus/LAN dan tidak dimaksudkan untuk diekspos ke internet publik.
 
+## Quick Start
+
+```bash
+git clone https://github.com/kakonoomoidee/linux-practicum-web.git
+cd linux-practicum-web
+cp .env.example .env          # sesuaikan PGPASSWORD & SESSION_SECRET minimal
+docker compose up -d --build
+docker compose exec app node scripts/seed.js              # catat kredensial admin yang ditampilkan
+./scripts/build-image.sh                                  # build image container mahasiswa
+docker compose exec app node scripts/import-students.js <file.csv>
+```
+
+Dashboard mahasiswa: `http://<ip-server>:3000/login` — Dashboard admin: `http://<ip-server>:3000/admin/login`
+
+Instalasi Node.js dan PostgreSQL secara manual pada server **tidak diperlukan** — satu-satunya prasyarat adalah Docker Engine. Penjelasan tiap langkah tersedia pada bagian "Instalasi dan Deployment" di bawah.
+
 ## Changelog
 
 **v4.2**
@@ -154,31 +170,51 @@ Administrator juga dapat melakukan force-delete terhadap instance kapan pun mela
 
 ---
 
-## 🐳 Deployment dengan Docker Compose (Direkomendasikan)
+## 🐳 Instalasi dan Deployment
 
-Deployment dibungkus menjadi dua service: `app` (aplikasi Node.js) dan `db` (PostgreSQL). Instalasi manual Node.js maupun PostgreSQL pada server tidak diperlukan — cukup Docker Engine.
+Platform ini sepenuhnya dibungkus dengan **Docker Compose** — dua service (`app` untuk aplikasi Node.js, `db` untuk PostgreSQL) dijalankan dan dikelola melalui satu perintah. Instalasi Node.js maupun PostgreSQL secara manual pada server **tidak diperlukan**; satu-satunya prasyarat adalah Docker Engine.
 
-**Catatan arsitektur:** karena aplikasi memerlukan kendali atas Docker Engine untuk melakukan provisioning container mahasiswa, service `app` dijalankan dengan **Docker socket host dipasang ke dalamnya** (`/var/run/docker.sock`). Mekanisme ini memungkinkan `app` memerintahkan Docker Engine milik host untuk membuat/menghapus container mahasiswa sebagai *sibling container* — bukan Docker-in-Docker, melainkan delegasi perintah ke Docker Engine yang sama dengan yang digunakan host. Konsekuensinya, container mahasiswa yang dibuat memiliki port yang di-bind langsung ke host.
+### Prasyarat
 
-Service `app` juga menggunakan `network_mode: host`, yang memungkinkan **auto-detect IP LAN server** untuk ditampilkan kepada mahasiswa (lihat `about-proyek.md` untuk rasional lengkap). Pada Docker Desktop (Windows/Mac), mode ini kurang konsisten — apabila auto-detect tidak akurat, isi `SSH_HOST_DISPLAY` secara manual pada `.env`; nilai manual senantiasa diprioritaskan.
+- **Docker Engine** dan **Docker Compose plugin** terinstal. Verifikasi dengan:
+  ```bash
+  docker --version
+  docker compose version
+  ```
+  Apabila belum terinstal, ikuti panduan resmi sesuai sistem operasi pada [docs.docker.com/engine/install](https://docs.docker.com/engine/install/).
+- Untuk pengguna WSL2: pastikan menjalankan Docker Engine native pada distribusi WSL (bukan Docker Desktop), agar fitur `network_mode: host` dan auto-detect IP berfungsi optimal (lihat bagian "Catatan Arsitektur" di bawah).
 
-### 1. Prasyarat
+### Catatan Arsitektur
 
-- Docker Engine dan Docker Compose plugin (`docker compose version` untuk verifikasi)
+Karena aplikasi memerlukan kendali atas Docker Engine untuk melakukan provisioning container mahasiswa, service `app` dijalankan dengan **Docker socket host dipasang ke dalamnya** (`/var/run/docker.sock`). Mekanisme ini memungkinkan `app` memerintahkan Docker Engine milik host untuk membuat/menghapus container mahasiswa sebagai *sibling container* — bukan Docker-in-Docker, melainkan delegasi perintah ke Docker Engine yang sama dengan yang digunakan host. Konsekuensinya, container mahasiswa yang dibuat memiliki port yang di-bind langsung ke host.
+
+Service `app` juga menggunakan `network_mode: host`, yang memungkinkan **auto-detect IP LAN server** untuk ditampilkan kepada mahasiswa tanpa konfigurasi manual (lihat `about-proyek.md` untuk rasional lengkap). Pada Docker Desktop (Windows/Mac), mode ini kurang konsisten akibat perbedaan virtualisasi jaringan — apabila auto-detect tidak akurat, isi `SSH_HOST_DISPLAY` secara manual pada `.env`; nilai manual senantiasa diprioritaskan.
+
+### 1. Clone repository
+
+```bash
+git clone https://github.com/kakonoomoidee/linux-practicum-web.git
+cd linux-practicum-web
+```
 
 ### 2. Konfigurasi environment
 
 ```bash
-cd linux-praktikum
 cp .env.example .env
 ```
 
-Parameter minimal yang perlu disesuaikan pada `.env`:
-- `PGPASSWORD` — kata sandi PostgreSQL (jangan gunakan nilai default)
-- `SESSION_SECRET` — string acak yang panjang
-- `ADMIN_USERNAME` / `ADMIN_PASSWORD` — kosongkan `ADMIN_PASSWORD` untuk generate otomatis saat seeding
-- `SSH_HOST_DISPLAY` — biarkan kosong (default) untuk auto-detect; isi manual hanya apabila hasil deteksi tidak sesuai
-- `DB_HOST_PORT` — port PostgreSQL sisi host (default `5433`, sengaja bukan `5432` untuk menghindari konflik dengan instance PostgreSQL lain yang mungkin sudah berjalan)
+Seluruh parameter memiliki nilai default yang berfungsi untuk kebutuhan pengujian, namun untuk deployment produksi minimal sesuaikan:
+
+| Variabel | Keterangan |
+|---|---|
+| `PGPASSWORD` | Kata sandi PostgreSQL — **wajib diganti** dari nilai default |
+| `SESSION_SECRET` | String acak yang panjang, digunakan untuk enkripsi cookie sesi |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Kosongkan `ADMIN_PASSWORD` agar digenerate otomatis secara acak saat seeding (lebih aman dibanding password statis) |
+| `SSH_HOST_DISPLAY` | Biarkan kosong (default) untuk auto-detect; isi manual hanya apabila hasil deteksi tidak sesuai |
+| `DB_HOST_PORT` | Port PostgreSQL sisi host (default `5433`, sengaja bukan `5432` untuk menghindari konflik dengan instance PostgreSQL lain yang mungkin sudah berjalan pada mesin yang sama) |
+| `CONTAINER_TTL_HOURS` | Masa hidup container mahasiswa sebelum dihapus otomatis (default 24 jam) |
+
+Daftar lengkap variabel beserta penjelasannya tersedia pada `.env.example`.
 
 ### 3. Build dan menjalankan
 
@@ -186,7 +222,7 @@ Parameter minimal yang perlu disesuaikan pada `.env`:
 docker compose up -d --build
 ```
 
-Proses ini secara otomatis: build image `app`, menarik image `postgres:16-alpine`, menunggu PostgreSQL siap (healthcheck), kemudian menjalankan `app` (skema basis data diinisialisasi otomatis saat startup, dengan mekanisme retry apabila PostgreSQL belum sepenuhnya siap).
+Perintah ini secara otomatis: build image `app`, menarik image `postgres:16-alpine`, menunggu PostgreSQL siap (healthcheck), kemudian menjalankan `app` (skema basis data diinisialisasi otomatis saat startup, dengan mekanisme retry apabila PostgreSQL belum sepenuhnya siap).
 
 Verifikasi status:
 ```bash
@@ -194,125 +230,74 @@ docker compose ps
 docker compose logs -f app
 ```
 
+Log startup yang normal akan menampilkan konfirmasi koneksi basis data berhasil, hasil auto-detect host SSH, dan port yang digunakan aplikasi.
+
 ### 4. Seeding akun admin
 
 ```bash
-npm run docker:seed
-# atau: docker compose exec app node scripts/seed.js
+docker compose exec app node scripts/seed.js
+# atau: npm run docker:seed
 ```
 
-Catat kredensial admin yang ditampilkan (apabila `ADMIN_PASSWORD` dikosongkan pada `.env`, password digenerate secara acak dan hanya ditampilkan satu kali).
+**Catat kredensial admin yang ditampilkan** — apabila `ADMIN_PASSWORD` dikosongkan pada `.env`, password digenerate secara acak dan **hanya ditampilkan satu kali** pada output perintah ini. Perintah ini aman dijalankan berulang kali; akun admin yang sudah ada tidak akan ditimpa.
 
 ### 5. Build image container mahasiswa
 
-Image ini berbeda dari image `app` — digunakan untuk container per-mahasiswa (Ubuntu + SSH). Karena `app` hanya mendelegasikan perintah ke Docker Engine host, image ini dibangun **langsung di host**, bukan di dalam container `app`:
+Image ini berbeda dari image `app` — digunakan sebagai base image untuk container per-mahasiswa (Ubuntu + SSH + akses `sudo`). Karena `app` hanya mendelegasikan perintah ke Docker Engine host, image ini dibangun **langsung di host**, bukan di dalam container `app`:
 
 ```bash
 chmod +x scripts/build-image.sh
 ./scripts/build-image.sh
 ```
 
+Verifikasi: `docker images | grep praktikum-linux`.
+
 ### 6. Import daftar mahasiswa
+
+Siapkan file CSV dengan kolom `nim,nama` (lihat `scripts/sample-students.csv` sebagai contoh format), lalu:
 
 ```bash
 docker compose cp daftar-mahasiswa.csv app:/app/daftar-mahasiswa.csv
 docker compose exec app node scripts/import-students.js daftar-mahasiswa.csv
 ```
 
+Perintah ini aman dijalankan berulang kali — NIM yang sudah terdaftar akan dilewati, tidak menimpa password yang sudah diganti mahasiswa. Cocok dijalankan ulang setiap semester untuk menambahkan kelas baru.
+
 ### 7. Verifikasi akses
 
 - Dashboard mahasiswa: `http://<ip-server>:3000/login`
 - Dashboard admin: `http://<ip-server>:3000/admin/login`
 
-### Referensi Perintah Operasional
+Login mahasiswa menggunakan NIM dengan password default `12345678` (wajib diganti pada login pertama). Login admin menggunakan kredensial dari langkah 4.
+
+---
+
+## Operasional Sehari-hari
 
 | Kebutuhan | Perintah |
 |---|---|
-| Log aplikasi secara real-time | `npm run docker:logs` |
+| Melihat log aplikasi secara real-time | `docker compose logs -f app` atau `npm run docker:logs` |
 | Restart seluruh service | `docker compose restart` |
-| Stop seluruh service (data tetap tersimpan) | `npm run docker:down` |
-| Stop dan **hapus seluruh data basis data** (destruktif) | `docker compose down -v` |
+| Stop seluruh service (data tetap tersimpan pada volume) | `docker compose down` atau `npm run docker:down` |
+| Stop dan **hapus seluruh data basis data** (destruktif, gunakan dengan hati-hati) | `docker compose down -v` |
 | Masuk ke shell container `app` | `docker compose exec app sh` |
 | Masuk ke psql basis data | `docker compose exec db psql -U praktikum_user -d praktikum_db` |
-| Update setelah perubahan kode | `docker compose up -d --build` |
+| Menerapkan perubahan kode/konfigurasi | `docker compose up -d --build` |
+| Import mahasiswa tambahan | `docker compose exec app node scripts/import-students.js <file>` |
+| Reset akun admin (setelah hapus row di psql) | `docker compose exec app node scripts/seed.js` |
 
 ### Kebijakan Akses PostgreSQL
 
 Port PostgreSQL sisi host (`DB_HOST_PORT`, default `5433`) hanya di-bind ke `127.0.0.1` (loopback), bukan ke seluruh antarmuka jaringan (`0.0.0.0`). Dengan konfigurasi ini, PostgreSQL tetap tidak dapat diakses dari jaringan kampus/LAN, namun tetap dapat dijangkau oleh proses lain pada mesin/VM yang sama — termasuk service `app` (karena menggunakan `network_mode: host`), maupun tool eksternal seperti DBeaver/pgAdmin untuk keperluan debugging langsung dari host.
 
----
-
-## Deployment Manual (Tanpa Docker)
-
-### 1. Prasyarat
-
-- Node.js 18+
-- PostgreSQL 14+ (terinstal dan berjalan)
-- Docker Engine dengan akses `/var/run/docker.sock` untuk user yang menjalankan Node.js
+### Update ke Versi Terbaru
 
 ```bash
-sudo usermod -aG docker $USER   # logout/login ulang setelah perintah ini
+git pull origin main
+docker compose up -d --build
 ```
 
-### 2. Persiapan basis data
-
-```bash
-sudo -u postgres psql -c "CREATE USER praktikum_user WITH PASSWORD 'ganti_password_ini';"
-sudo -u postgres psql -c "CREATE DATABASE praktikum_db OWNER praktikum_user;"
-```
-
-### 3. Instalasi dan konfigurasi
-
-```bash
-cd linux-praktikum
-npm install
-cp .env.example .env
-```
-
-Parameter minimal pada `.env`:
-- `DATABASE_URL` (atau `PGHOST`/`PGUSER`/`PGPASSWORD`/`PGDATABASE` secara terpisah)
-- `SESSION_SECRET` — string acak yang panjang
-- `SSH_HOST_DISPLAY` — biarkan kosong untuk auto-detect
-- `ADMIN_USERNAME` / `ADMIN_PASSWORD` — kosongkan `ADMIN_PASSWORD` untuk generate otomatis
-
-### 4. Seeding akun admin
-
-```bash
-npm run seed
-```
-
-Perintah ini aman dijalankan berulang kali — akun admin yang sudah ada tidak akan ditimpa. Apabila password digenerate otomatis, segera catat karena hanya ditampilkan satu kali.
-
-### 5. Build image container mahasiswa
-
-```bash
-chmod +x scripts/build-image.sh
-./scripts/build-image.sh
-```
-
-### 6. Import daftar mahasiswa
-
-```bash
-node scripts/import-students.js path/ke/daftar-mahasiswa.csv
-```
-
-Aman dijalankan berulang kali — NIM yang sudah terdaftar akan dilewati tanpa menimpa password yang sudah diganti mahasiswa.
-
-### 7. Menjalankan server
-
-```bash
-npm start
-```
-
-Firewall kampus perlu dikonfigurasi untuk mengizinkan akses ke port `3000` dan rentang `SSH_PORT_MIN`–`SSH_PORT_MAX` **hanya dari subnet kampus**, dan memblokir akses dari luar.
-
-### Menjalankan sebagai Service (Opsional)
-
-```bash
-npm install -g pm2
-pm2 start server.js --name praktikum-linux
-pm2 save && pm2 startup
-```
+Skema basis data akan menyesuaikan otomatis (idempotent). Apabila terdapat perubahan pada struktur `docker-compose.yml` (misalnya penambahan environment variable baru), periksa `.env.example` untuk variabel yang mungkin perlu ditambahkan pada `.env` milik Anda.
 
 ---
 
@@ -330,14 +315,12 @@ Administrator dapat meninjau log aplikasi langsung dari browser melalui `/admin/
 ### Akses Log via Command Line
 
 ```bash
-# Melalui Docker Compose
-npm run docker:logs
-# atau:
 docker compose logs -f app
+# atau: npm run docker:logs
 
-# Melalui file (deployment manual)
-npm run logs:tail          # seluruh level
-npm run logs:errors        # khusus level error
+# Alternatif: tail langsung ke file (folder logs/ ter-mount ke host, lihat docker-compose.yml)
+tail -f logs/combined-*.log
+tail -f logs/error-*.log
 ```
 
 ### Struktur File Log
@@ -439,9 +422,9 @@ Apabila host sudah sesuai namun koneksi tetap gagal, periksa:
 
 Sejak v4.2, port PostgreSQL sisi host dapat dikonfigurasi melalui `DB_HOST_PORT` (default `5433`, bukan `5432`) untuk menghindari konflik dengan instance PostgreSQL lain yang mungkin sudah berjalan pada mesin yang sama. Apabila port `5433` juga sudah terpakai, sesuaikan nilai `DB_HOST_PORT` pada `.env` ke port lain yang tersedia.
 
-### Error native module saat `npm install` (bcrypt, ssh2, dsb.)
+### Build lambat atau bermasalah saat `docker compose up --build` di WSL
 
-Kemungkinan besar disebabkan proyek berada pada drive Windows (`/mnt/c/...`, `/mnt/e/...`, dsb.) yang di-mount ke WSL. Native module memerlukan proses kompilasi C++ dan operasi filesystem bergaya Unix yang tidak sepenuhnya reliable pada DrvFs (jembatan WSL↔NTFS). Solusi: pindahkan proyek ke filesystem native WSL (`~/projects/...`), kemudian install ulang dependency.
+Karena seluruh instalasi dependency (`npm install`, termasuk native module seperti `bcrypt`) kini berjalan **di dalam container** saat build (lihat `Dockerfile`), masalah native module yang umum terjadi pada instalasi Node.js langsung di WSL sudah tidak relevan lagi pada alur ini. Namun, performa build tetap dapat melambat apabila repository berada pada drive Windows (`/mnt/c/...`, `/mnt/e/...`, dsb.) yang di-mount ke WSL — proses copy build context dari DrvFs (jembatan WSL↔NTFS) ke Docker lebih lambat dibandingkan filesystem native. Solusi: clone/pindahkan repository ke filesystem native WSL (`~/projects/...`) sebelum menjalankan `docker compose up --build`.
 
 ---
 
