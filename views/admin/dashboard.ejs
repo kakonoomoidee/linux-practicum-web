@@ -1,85 +1,109 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="<%= lang %>">
 <head>
-  <title>Admin Dashboard — Praktikum Linux</title>
+  <title><%= t('admin.navDashboard') %> — <%= t('common.appName') %></title>
   <%- include('../partials/head') %>
 </head>
 <body class="bg-slate-50 min-h-screen">
 
-  <nav class="bg-white border-b border-slate-200">
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-10">
     <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 bg-slate-800 rounded-lg flex items-center justify-center text-white text-sm">⚙️</div>
+        <div class="w-9 h-9 bg-gradient-to-br from-slate-700 to-slate-900 rounded-lg flex items-center justify-center text-white">
+          <%- include('../partials/icon', { name: 'settings', cls: 'w-5 h-5' }) %>
+        </div>
         <div>
-          <p class="text-sm font-semibold text-slate-900">Admin Panel</p>
-          <p class="text-xs text-slate-500">Login sebagai <%= adminUsername %></p>
+          <p class="text-sm font-semibold text-slate-900"><%= t('admin.loginTitle') %></p>
+          <p class="text-xs text-slate-500"><%= t('admin.loggedInAs') %> <span class="font-medium"><%= adminUsername %></span></p>
         </div>
       </div>
-      <div class="flex items-center gap-3">
-        <a href="/admin/logs" class="text-sm text-slate-600 hover:text-slate-900">📋 Log Server</a>
-        <form method="POST" action="/admin/logout">
-          <button type="submit" class="text-sm text-slate-600 hover:text-slate-900 border border-slate-300 hover:border-slate-400 rounded-lg px-3.5 py-1.5 transition-colors">
-            Logout
-          </button>
-        </form>
+      <div class="flex items-center gap-2">
+        <%- include('../partials/lang-toggle') %>
+        <a href="/admin/logs" class="text-sm text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center gap-1.5">
+          <%- include('../partials/icon', { name: 'clipboard-list', cls: 'w-4 h-4' }) %>
+          <span class="hidden sm:inline"><%= t('admin.navLogs') %></span>
+        </a>
+        <button id="btn-admin-logout" class="text-sm text-slate-600 hover:text-slate-900 border border-slate-300 hover:border-slate-400 rounded-lg px-3.5 py-1.5 transition-colors flex items-center gap-1.5">
+          <%- include('../partials/icon', { name: 'log-out', cls: 'w-4 h-4' }) %>
+          <span class="hidden sm:inline"><%= t('common.logout') %></span>
+        </button>
       </div>
     </div>
   </nav>
 
   <main class="max-w-6xl mx-auto px-4 py-8">
 
-    <% if (notice) { %>
-      <div class="bg-blue-50 border border-blue-100 text-blue-700 text-sm rounded-lg px-4 py-3 mb-6">
-        <%= notice %>
-      </div>
-    <% } %>
-
     <!-- ==== Summary cards ==== -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-      <div class="bg-white border border-slate-200 rounded-xl p-4">
-        <p class="text-xs text-slate-500 mb-1">Total Mahasiswa</p>
+      <div class="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+        <div class="flex items-center gap-2 mb-1.5">
+          <div class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+            <%- include('../partials/icon', { name: 'users', cls: 'w-4 h-4' }) %>
+          </div>
+          <p class="text-xs text-slate-500"><%= t('admin.summaryStudents') %></p>
+        </div>
         <p class="text-2xl font-semibold text-slate-900"><%= summary.total_students %></p>
       </div>
-      <div class="bg-white border border-slate-200 rounded-xl p-4">
-        <p class="text-xs text-slate-500 mb-1">Instance Aktif</p>
+      <div class="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+        <div class="flex items-center gap-2 mb-1.5">
+          <div class="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600">
+            <%- include('../partials/icon', { name: 'activity', cls: 'w-4 h-4' }) %>
+          </div>
+          <p class="text-xs text-slate-500"><%= t('admin.summaryActive') %></p>
+        </div>
         <p class="text-2xl font-semibold text-brand-600"><%= summary.active_containers %></p>
       </div>
-      <div class="bg-white border border-slate-200 rounded-xl p-4">
-        <p class="text-xs text-slate-500 mb-1">Total Dibuat (sepanjang waktu)</p>
+      <div class="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+        <div class="flex items-center gap-2 mb-1.5">
+          <div class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+            <%- include('../partials/icon', { name: 'box', cls: 'w-4 h-4' }) %>
+          </div>
+          <p class="text-xs text-slate-500"><%= t('admin.summaryTotal') %></p>
+        </div>
         <p class="text-2xl font-semibold text-slate-900"><%= summary.total_containers_ever %></p>
       </div>
-      <div class="bg-white border border-slate-200 rounded-xl p-4">
-        <p class="text-xs text-slate-500 mb-1">Login 24 jam terakhir</p>
+      <div class="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+        <div class="flex items-center gap-2 mb-1.5">
+          <div class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
+            <%- include('../partials/icon', { name: 'user', cls: 'w-4 h-4' }) %>
+          </div>
+          <p class="text-xs text-slate-500"><%= t('admin.summaryLogins') %></p>
+        </div>
         <p class="text-2xl font-semibold text-slate-900"><%= summary.logins_last_24h %></p>
       </div>
     </div>
 
     <!-- ==== Running instances ==== -->
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm mb-8 overflow-hidden">
-      <div class="px-6 py-4 border-b border-slate-200">
-        <h2 class="text-base font-semibold text-slate-900">📦 Instance yang Sedang Jalan</h2>
-        <p class="text-xs text-slate-500 mt-0.5">Total <%= runningInstances.length %> instance aktif</p>
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 shrink-0">
+          <%- include('../partials/icon', { name: 'box', cls: 'w-5 h-5' }) %>
+        </div>
+        <div>
+          <h2 class="text-base font-semibold text-slate-900"><%= t('admin.runningInstancesTitle') %></h2>
+          <p class="text-xs text-slate-500 mt-0.5"><%= t('admin.runningInstancesSubtitle', { count: runningInstances.length }) %></p>
+        </div>
       </div>
 
       <% if (runningInstances.length === 0) { %>
-        <div class="px-6 py-10 text-center text-sm text-slate-400">Belum ada instance yang jalan.</div>
+        <div class="px-6 py-10 text-center text-sm text-slate-400"><%= t('admin.noInstances') %></div>
       <% } else { %>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-slate-200 text-left text-xs text-slate-500">
-                <th class="px-6 py-3 font-medium">NIM</th>
-                <th class="px-6 py-3 font-medium">Nama</th>
-                <th class="px-6 py-3 font-medium">Container</th>
-                <th class="px-6 py-3 font-medium">SSH</th>
-                <th class="px-6 py-3 font-medium">Dibuat</th>
-                <th class="px-6 py-3 font-medium">Expired</th>
+                <th class="px-6 py-3 font-medium"><%= t('admin.colNim') %></th>
+                <th class="px-6 py-3 font-medium"><%= t('admin.colName') %></th>
+                <th class="px-6 py-3 font-medium"><%= t('admin.colContainer') %></th>
+                <th class="px-6 py-3 font-medium"><%= t('admin.colSsh') %></th>
+                <th class="px-6 py-3 font-medium"><%= t('admin.colCreated') %></th>
+                <th class="px-6 py-3 font-medium"><%= t('admin.colExpires') %></th>
                 <th class="px-6 py-3 font-medium"></th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <% runningInstances.forEach(function(inst) { %>
-                <tr class="hover:bg-slate-50">
+                <tr class="hover:bg-slate-50 transition-colors">
                   <td class="px-6 py-3 text-slate-900 font-medium"><%= inst.nim %></td>
                   <td class="px-6 py-3 text-slate-700"><%= inst.nama %></td>
                   <td class="px-6 py-3 text-slate-500 text-xs"><%= inst.container_name %></td>
@@ -87,18 +111,18 @@
                     <code class="bg-slate-900 text-green-400 px-2 py-1 rounded text-xs"><%= inst.ssh_command %></code>
                   </td>
                   <td class="px-6 py-3 text-slate-500 text-xs whitespace-nowrap">
-                    <%= new Date(inst.created_at).toLocaleString('id-ID') %>
+                    <%= new Date(inst.created_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US') %>
                   </td>
                   <td class="px-6 py-3 text-slate-500 text-xs whitespace-nowrap">
-                    <%= new Date(inst.expires_at).toLocaleString('id-ID') %>
+                    <%= new Date(inst.expires_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US') %>
                   </td>
                   <td class="px-6 py-3">
-                    <form method="POST" action="/admin/instances/<%= inst.id %>/destroy"
-                          onsubmit="return confirm('Hapus paksa instance milik <%= inst.nim %>?');">
-                      <button type="submit" class="text-xs text-red-600 hover:text-white hover:bg-red-600 border border-red-200 hover:border-red-600 rounded-lg px-3 py-1.5 transition-colors whitespace-nowrap">
-                        Hapus
-                      </button>
-                    </form>
+                    <button
+                      class="btn-destroy-instance text-xs text-red-600 hover:text-white hover:bg-red-600 border border-red-200 hover:border-red-600 rounded-lg px-3 py-1.5 transition-colors whitespace-nowrap inline-flex items-center gap-1.5"
+                      data-id="<%= inst.id %>" data-nim="<%= inst.nim %>">
+                      <%- include('../partials/icon', { name: 'trash', cls: 'w-3.5 h-3.5' }) %>
+                      <%= t('admin.deleteButton') %>
+                    </button>
                   </td>
                 </tr>
               <% }); %>
@@ -110,39 +134,53 @@
 
     <!-- ==== Usage stats per mahasiswa ==== -->
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-      <div class="px-6 py-4 border-b border-slate-200">
-        <h2 class="text-base font-semibold text-slate-900">📊 Statistik Pemakaian per Mahasiswa</h2>
-        <p class="text-xs text-slate-500 mt-0.5">Diurutkan dari yang paling sering pakai</p>
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
+          <%- include('../partials/icon', { name: 'chart', cls: 'w-5 h-5' }) %>
+        </div>
+        <div>
+          <h2 class="text-base font-semibold text-slate-900"><%= t('admin.usageStatsTitle') %></h2>
+          <p class="text-xs text-slate-500 mt-0.5"><%= t('admin.usageStatsSubtitle') %></p>
+        </div>
       </div>
 
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-slate-200 text-left text-xs text-slate-500">
-              <th class="px-6 py-3 font-medium">NIM</th>
-              <th class="px-6 py-3 font-medium">Nama</th>
-              <th class="px-6 py-3 font-medium text-center">Total Login</th>
-              <th class="px-6 py-3 font-medium text-center">Total Container Dibuat</th>
-              <th class="px-6 py-3 font-medium text-center">Sedang Aktif</th>
-              <th class="px-6 py-3 font-medium">Terakhir Bikin Container</th>
+              <th class="px-6 py-3 font-medium"><%= t('admin.colNim') %></th>
+              <th class="px-6 py-3 font-medium"><%= t('admin.colName') %></th>
+              <th class="px-6 py-3 font-medium text-center"><%= t('admin.colTotalLogins') %></th>
+              <th class="px-6 py-3 font-medium text-center"><%= t('admin.colTotalContainers') %></th>
+              <th class="px-6 py-3 font-medium text-center"><%= t('admin.colActiveNow') %></th>
+              <th class="px-6 py-3 font-medium"><%= t('admin.colLastContainer') %></th>
+              <th class="px-6 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <% usageStats.forEach(function(u) { %>
-              <tr class="hover:bg-slate-50">
+              <tr class="hover:bg-slate-50 transition-colors">
                 <td class="px-6 py-3 text-slate-900 font-medium"><%= u.nim %></td>
                 <td class="px-6 py-3 text-slate-700"><%= u.nama %></td>
                 <td class="px-6 py-3 text-center text-slate-700"><%= u.login_count %></td>
                 <td class="px-6 py-3 text-center text-slate-700"><%= u.total_containers %></td>
                 <td class="px-6 py-3 text-center">
                   <% if (u.active_containers > 0) { %>
-                    <span class="text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded-full">Aktif</span>
+                    <span class="text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded-full"><%= t('admin.statusActive') %></span>
                   <% } else { %>
-                    <span class="text-xs font-medium bg-slate-100 text-slate-500 px-2 py-1 rounded-full">Tidak</span>
+                    <span class="text-xs font-medium bg-slate-100 text-slate-500 px-2 py-1 rounded-full"><%= t('admin.statusInactive') %></span>
                   <% } %>
                 </td>
                 <td class="px-6 py-3 text-slate-500 text-xs whitespace-nowrap">
-                  <%= u.last_container_at ? new Date(u.last_container_at).toLocaleString('id-ID') : '—' %>
+                  <%= u.last_container_at ? new Date(u.last_container_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US') : '—' %>
+                </td>
+                <td class="px-6 py-3">
+                  <button
+                    class="btn-reset-password text-xs text-slate-600 hover:text-white hover:bg-slate-700 border border-slate-200 hover:border-slate-700 rounded-lg px-3 py-1.5 transition-colors whitespace-nowrap inline-flex items-center gap-1.5"
+                    data-nim="<%= u.nim %>">
+                    <%- include('../partials/icon', { name: 'key', cls: 'w-3.5 h-3.5' }) %>
+                    <%= t('admin.resetPasswordButton') %>
+                  </button>
                 </td>
               </tr>
             <% }); %>
@@ -152,5 +190,25 @@
     </div>
 
   </main>
+
+  <script>
+    window.i18n = <%- JSON.stringify({
+      deleteConfirmTitle: t('admin.deleteConfirmTitle'),
+      deleteConfirmText: t('admin.deleteConfirmText'),
+      deleteButton: t('admin.deleteButton'),
+      cancel: t('common.cancel'),
+      deleteSuccess: t('admin.deleteSuccess'),
+      resetPasswordModalTitleTpl: t('admin.resetPasswordModalTitle', { nim: '__NIM__' }),
+      resetPasswordModalText: t('admin.resetPasswordModalText'),
+      resetPasswordPlaceholder: t('admin.resetPasswordPlaceholder'),
+      resetPasswordConfirmButton: t('admin.resetPasswordConfirmButton'),
+      resetPasswordSuccess: t('admin.resetPasswordSuccess'),
+      resetPasswordCopyHint: t('admin.resetPasswordCopyHint'),
+      generateRandomButton: t('admin.generateRandomButton'),
+      passwordTooShort: t('errors.PASSWORD_TOO_SHORT')
+    }) %>;
+  </script>
+  <script src="/js/notify.js"></script>
+  <script src="/js/admin-dashboard.js"></script>
 </body>
 </html>

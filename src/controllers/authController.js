@@ -3,18 +3,23 @@ const ServiceError = require('../utils/ServiceError');
 const logger = require('../config/logger');
 
 const errorStatusMap = {
-  VALIDATION_ERROR: 400,
+  MISSING_CREDENTIALS: 400,
   INVALID_CREDENTIALS: 401,
-  NOT_FOUND: 404,
+  MISSING_PASSWORD_FIELDS: 400,
+  PASSWORD_TOO_SHORT: 400,
+  PASSWORD_SAME_AS_DEFAULT: 400,
+  PASSWORD_INCORRECT: 401,
+  STUDENT_NOT_FOUND: 404,
 };
 
 function handleServiceError(err, res, req) {
   if (err instanceof ServiceError) {
     const status = errorStatusMap[err.code] || 400;
-    return res.status(status).json({ success: false, code: status, message: err.message, data: err.meta || null });
+    const message = res.locals.t(`errors.${err.code}`);
+    return res.status(status).json({ success: false, code: status, message, data: err.meta || null });
   }
   logger.error(`Unexpected error di authController: ${err.message}`, { stack: err.stack, requestId: req && req.requestId });
-  return res.status(500).json({ success: false, code: 500, message: 'Terjadi kesalahan pada server', data: null });
+  return res.status(500).json({ success: false, code: 500, message: res.locals.t('common.serverError'), data: null });
 }
 
 async function login(req, res) {
@@ -36,7 +41,7 @@ async function login(req, res) {
     return res.json({
       success: true,
       code: 200,
-      message: 'Login berhasil',
+      message: res.locals.t('common.loginSuccess'),
       data: { nim: result.nim, nama: result.nama, first_login: !!result.firstLogin },
     });
   } catch (err) {
@@ -53,7 +58,7 @@ async function changePassword(req, res) {
     await authService.changePassword(req.session.nim, old_password, new_password);
     req.session.firstLogin = false;
     logger.info(`Password berhasil diganti`, { nim: req.session.nim, event: 'password_changed' });
-    return res.json({ success: true, code: 200, message: 'Password berhasil diganti', data: null });
+    return res.json({ success: true, code: 200, message: res.locals.t('changePassword.successMessage'), data: null });
   } catch (err) {
     return handleServiceError(err, res, req);
   }
@@ -70,9 +75,10 @@ async function me(req, res) {
 
 async function logout(req, res) {
   const nim = req.session.nim;
+  const t = res.locals.t;
   req.session.destroy(() => {
     logger.info(`Logout`, { nim, event: 'student_logout' });
-    res.json({ success: true, code: 200, message: 'Logout berhasil', data: null });
+    res.json({ success: true, code: 200, message: t('common.logoutSuccess'), data: null });
   });
 }
 

@@ -144,7 +144,7 @@ async function createForStudent(nim) {
 async function destroyForStudent(nim, containerDbId) {
   const row = await containerRepository.findRunningByIdAndNim(containerDbId, nim);
   if (!row) {
-    throw new ServiceError('Container tidak ditemukan', 'NOT_FOUND');
+    throw new ServiceError('Container tidak ditemukan', 'INSTANCE_NOT_FOUND');
   }
 
   try {

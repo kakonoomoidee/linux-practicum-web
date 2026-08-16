@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const adminRepository = require('../repositories/adminRepository');
 const containerRepository = require('../repositories/containerRepository');
+const studentRepository = require('../repositories/studentRepository');
 const dockerService = require('./dockerService');
 const activityLogRepository = require('../repositories/activityLogRepository');
 const config = require('../config/env');
@@ -9,17 +10,17 @@ const logger = require('../config/logger');
 
 async function login(username, password) {
   if (!username || !password) {
-    throw new ServiceError('Username dan password wajib diisi', 'VALIDATION_ERROR');
+    throw new ServiceError('Username dan password wajib diisi', 'MISSING_ADMIN_CREDENTIALS');
   }
 
   const admin = await adminRepository.findByUsername(username.trim());
   if (!admin) {
-    throw new ServiceError('Username atau password salah', 'INVALID_CREDENTIALS');
+    throw new ServiceError('Username atau password salah', 'INVALID_ADMIN_CREDENTIALS');
   }
 
   const match = await bcrypt.compare(password, admin.password_hash);
   if (!match) {
-    throw new ServiceError('Username atau password salah', 'INVALID_CREDENTIALS');
+    throw new ServiceError('Username atau password salah', 'INVALID_ADMIN_CREDENTIALS');
   }
 
   return { id: admin.id, username: admin.username };
@@ -59,7 +60,7 @@ async function getDashboardData() {
 async function forceDestroyInstance(containerDbId) {
   const row = await containerRepository.findById(containerDbId);
   if (!row || row.status !== 'running') {
-    throw new ServiceError('Instance tidak ditemukan atau sudah tidak aktif', 'NOT_FOUND');
+    throw new ServiceError('Instance tidak ditemukan atau sudah tidak aktif', 'INSTANCE_NOT_FOUND');
   }
 
   try {
@@ -76,4 +77,25 @@ async function forceDestroyInstance(containerDbId) {
   logger.info(`Instance dihapus paksa oleh admin`, { nim: row.nim, containerName: row.container_name, event: 'admin_force_destroy' });
 }
 
-module.exports = { login, getDashboardData, forceDestroyInstance };
+/**
+ * Admin reset password mahasiswa - dipakai kalau mahasiswa lupa password dan ga bisa
+ * self-service ganti sendiri. Password baru WAJIB diganti lagi oleh mahasiswa di login
+ * berikutnya (first_login di-set true lagi), sama seperti alur akun baru.
+ */
+async function resetStudentPassword(nim, newPassword) {
+  if (!newPassword || newPassword.length < 8) {
+    throw new ServiceError('Password baru minimal 8 karakter', 'PASSWORD_TOO_SHORT');
+  }
+
+  const student = await studentRepository.findByNim(nim);
+  if (!student) {
+    throw new ServiceError('Mahasiswa tidak ditemukan', 'STUDENT_NOT_FOUND');
+  }
+
+  const newHash = await bcrypt.hash(newPassword, 12);
+  await studentRepository.resetPasswordByAdmin(nim, newHash);
+  await activityLogRepository.log(nim, 'password_reset_by_admin');
+  logger.info(`Password mahasiswa direset oleh admin`, { nim, event: 'admin_reset_password' });
+}
+
+module.exports = { login, getDashboardData, forceDestroyInstance, resetStudentPassword };

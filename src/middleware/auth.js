@@ -1,7 +1,7 @@
 function requireLogin(req, res, next) {
   if (!req.session || !req.session.nim) {
     if (req.path.startsWith('/api/')) {
-      return res.status(401).json({ success: false, code: 401, message: 'Kamu belum login, silakan login dulu', data: null });
+      return res.status(401).json({ success: false, code: 401, message: res.locals.t('common.notLoggedIn'), data: null });
     }
     return res.redirect('/login');
   }
@@ -14,7 +14,7 @@ function requirePasswordChanged(req, res, next) {
       return res.status(403).json({
         success: false,
         code: 403,
-        message: 'Kamu wajib ganti password default sebelum lanjut',
+        message: res.locals.t('common.mustChangePassword'),
         data: { redirect: '/change-password' },
       });
     }

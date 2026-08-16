@@ -28,8 +28,8 @@ module.exports = {
   ssh: {
     hostDisplay: detectedHost.host,
     hostDisplaySource: detectedHost.source,
-    portMin: parseInt(process.env.SSH_PORT_MIN || '30000', 10),
-    portMax: parseInt(process.env.SSH_PORT_MAX || '40000', 10),
+    portMin: parseInt(process.env.SSH_PORT_MIN || '19120', 10),
+    portMax: parseInt(process.env.SSH_PORT_MAX || '19999', 10),
   },
 
   container: {

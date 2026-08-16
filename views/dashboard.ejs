@@ -1,36 +1,47 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="<%= lang %>">
 <head>
-  <title>Dashboard — Praktikum Linux</title>
+  <title><%= t('dashboard.pageTitle') %> — <%= t('common.appName') %></title>
   <%- include('partials/head') %>
 </head>
-<body class="bg-slate-50 min-h-screen">
+<body class="bg-gradient-to-br from-slate-50 via-white to-blue-50 min-h-screen">
 
-  <nav class="bg-white border-b border-slate-200">
+  <nav class="bg-white/80 backdrop-blur border-b border-slate-200 sticky top-0 z-10">
     <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 bg-brand-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">L</div>
+        <div class="w-9 h-9 bg-brand-600 rounded-lg flex items-center justify-center text-white">
+          <%- include('partials/icon', { name: 'linux', cls: 'w-5 h-5' }) %>
+        </div>
         <div>
-          <p class="text-sm font-semibold text-slate-900">Praktikum Linux</p>
+          <p class="text-sm font-semibold text-slate-900"><%= t('common.appName') %></p>
           <p class="text-xs text-slate-500">UMY</p>
         </div>
       </div>
-      <button id="btn-logout" class="text-sm text-slate-600 hover:text-slate-900 border border-slate-300 hover:border-slate-400 rounded-lg px-3.5 py-1.5 transition-colors">
-        Logout
-      </button>
+      <div class="flex items-center gap-3">
+        <%- include('partials/lang-toggle') %>
+        <button id="btn-logout" class="text-sm text-slate-600 hover:text-slate-900 border border-slate-300 hover:border-slate-400 rounded-lg px-3.5 py-1.5 transition-colors flex items-center gap-1.5">
+          <%- include('partials/icon', { name: 'log-out', cls: 'w-4 h-4' }) %>
+          <span class="hidden sm:inline"><%= t('common.logout') %></span>
+        </button>
+      </div>
     </div>
   </nav>
 
   <main class="max-w-4xl mx-auto px-4 py-8">
 
-    <div class="mb-8">
-      <h1 class="text-2xl font-semibold text-slate-900">Halo, <%= nama %> 👋</h1>
-      <p class="text-sm text-slate-500 mt-1">NIM: <%= nim %></p>
+    <div class="mb-8 flex items-center gap-3">
+      <div class="w-11 h-11 bg-gradient-to-br from-brand-500 to-brand-700 rounded-full flex items-center justify-center text-white shrink-0">
+        <%- include('partials/icon', { name: 'wave', cls: 'w-5 h-5' }) %>
+      </div>
+      <div>
+        <h1 class="text-2xl font-semibold text-slate-900"><%= t('dashboard.greeting') %>, <%= nama %></h1>
+        <p class="text-sm text-slate-500"><%= t('dashboard.nimLabel') %>: <%= nim %></p>
+      </div>
     </div>
 
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8">
 
-      <!-- Skeleton loading - tampil saat: load awal, lagi bikin container, atau lagi hapus container -->
+      <!-- Skeleton loading -->
       <div id="skeleton-box" class="animate-pulse">
         <div class="flex items-center justify-between mb-5">
           <div class="h-5 bg-slate-200 rounded w-40"></div>
@@ -42,64 +53,88 @@
           <div class="h-4 bg-slate-200 rounded w-2/3"></div>
           <div class="h-4 bg-slate-200 rounded w-3/4"></div>
         </div>
-        <p id="skeleton-label" class="text-center text-xs text-slate-400 mt-4">Memuat status container...</p>
+        <p id="skeleton-label" class="text-center text-xs text-slate-400 mt-4"><%= t('dashboard.loadingStatus') %></p>
       </div>
 
       <div id="no-container-box" class="hidden text-center py-10">
-        <div class="w-14 h-14 bg-slate-100 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl">📦</div>
-        <p class="text-slate-600 mb-1">Kamu belum punya container aktif.</p>
-        <p class="text-xs text-slate-400 mb-6">Container otomatis dihapus setelah <%= ttlHours %> jam.</p>
+        <div class="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center text-slate-400">
+          <%- include('partials/icon', { name: 'box', cls: 'w-7 h-7' }) %>
+        </div>
+        <p class="text-slate-600 mb-1"><%= t('dashboard.noContainerTitle') %></p>
+        <p class="text-xs text-slate-400 mb-6"><%= t('dashboard.noContainerSubtitle', { ttl: ttlHours }) %></p>
         <button id="btn-create-container"
-          class="bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-colors">
-          🚀 Buat Container Baru
+          class="bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-all active:scale-[0.98] inline-flex items-center gap-2">
+          <%- include('partials/icon', { name: 'rocket', cls: 'w-4 h-4' }) %>
+          <%= t('dashboard.createButton') %>
         </button>
       </div>
 
       <div id="container-box" class="hidden">
         <div class="flex items-center justify-between mb-5">
           <h3 class="text-base font-semibold text-slate-900 flex items-center gap-2">
-            📦 <span id="c-name"></span>
+            <%- include('partials/icon', { name: 'box', cls: 'w-5 h-5 text-brand-600' }) %>
+            <span id="c-name"></span>
           </h3>
-          <span id="c-status" class="text-xs font-medium bg-green-100 text-green-700 px-2.5 py-1 rounded-full"></span>
+          <span class="text-xs font-medium bg-green-100 text-green-700 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            <%= t('dashboard.statusRunning') %>
+          </span>
         </div>
 
         <div class="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
           <table class="w-full text-sm">
             <tbody class="divide-y divide-slate-200">
               <tr>
-                <td class="px-4 py-3 text-slate-500 w-40">Perintah SSH</td>
+                <td class="px-4 py-3 text-slate-500 w-40"><%= t('dashboard.sshCommandLabel') %></td>
                 <td class="px-4 py-3">
                   <code id="c-ssh-command" class="bg-slate-900 text-green-400 px-2.5 py-1 rounded text-xs"></code>
-                  <button id="btn-copy-ssh" class="text-xs text-brand-600 hover:text-brand-700 ml-2 font-medium">Copy</button>
+                  <button id="btn-copy-ssh" class="text-xs text-brand-600 hover:text-brand-700 ml-2 font-medium inline-flex items-center gap-1">
+                    <%- include('partials/icon', { name: 'copy', cls: 'w-3.5 h-3.5' }) %>
+                    <%= t('dashboard.copy') %>
+                  </button>
                 </td>
               </tr>
               <tr>
-                <td class="px-4 py-3 text-slate-500">Username</td>
+                <td class="px-4 py-3 text-slate-500"><%= t('dashboard.usernameLabel') %></td>
                 <td class="px-4 py-3 text-slate-900" id="c-username"></td>
               </tr>
               <tr>
-                <td class="px-4 py-3 text-slate-500">Password</td>
+                <td class="px-4 py-3 text-slate-500"><%= t('dashboard.passwordLabel') %></td>
                 <td class="px-4 py-3 text-slate-900 font-mono" id="c-password"></td>
               </tr>
               <tr>
-                <td class="px-4 py-3 text-slate-500">Dibuat</td>
+                <td class="px-4 py-3 text-slate-500"><%= t('dashboard.createdLabel') %></td>
                 <td class="px-4 py-3 text-slate-900" id="c-created"></td>
               </tr>
               <tr>
-                <td class="px-4 py-3 text-slate-500">Kadaluarsa</td>
+                <td class="px-4 py-3 text-slate-500"><%= t('dashboard.expiresLabel') %></td>
                 <td class="px-4 py-3 text-slate-900" id="c-expires"></td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-slate-500 flex items-center gap-1.5">
+                  <%- include('partials/icon', { name: 'clock', cls: 'w-4 h-4' }) %>
+                  <%= t('dashboard.timeRemaining') %>
+                </td>
+                <td class="px-4 py-3">
+                  <span id="c-countdown" class="font-mono font-medium text-brand-700"></span>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <p id="password-warn" class="hidden text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5 mt-4">
-          ⚠️ Catat password ini sekarang! Tidak akan ditampilkan lagi setelah kamu tinggalkan halaman ini.
+        <p id="password-warn" class="hidden text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5 mt-4 flex items-start gap-2">
+          <%- include('partials/icon', { name: 'alert-triangle', cls: 'w-4 h-4 shrink-0 mt-0.5' }) %>
+          <span><%= t('dashboard.passwordOnceWarning') %></span>
         </p>
 
         <button id="btn-destroy-container"
-          class="mt-5 text-sm text-red-600 hover:text-white hover:bg-red-600 border border-red-200 hover:border-red-600 rounded-lg px-4 py-2 transition-colors">
-          🗑️ Hapus Container
+          class="mt-5 text-sm text-red-600 hover:text-white hover:bg-red-600 border border-red-200 hover:border-red-600 rounded-lg px-4 py-2 transition-colors inline-flex items-center gap-2">
+          <%- include('partials/icon', { name: 'trash', cls: 'w-4 h-4' }) %>
+          <%= t('dashboard.destroyButton') %>
         </button>
       </div>
 
@@ -108,6 +143,26 @@
 
   </main>
 
+  <script>
+    window.i18n = <%- JSON.stringify({
+      createButton: t('dashboard.createButton'),
+      creating: t('dashboard.creating'),
+      destroying: t('dashboard.destroying'),
+      loadingStatus: t('dashboard.loadingStatus'),
+      copy: t('dashboard.copy'),
+      copied: t('dashboard.copied'),
+      createSuccessTitle: t('dashboard.createSuccessTitle'),
+      destroySuccessTitle: t('dashboard.destroySuccessTitle'),
+      destroyConfirmTitle: t('dashboard.destroyConfirmTitle'),
+      destroyConfirmText: t('dashboard.destroyConfirmText'),
+      destroyConfirmButton: t('dashboard.destroyConfirmButton'),
+      cancel: t('common.cancel'),
+      expiringSoon: t('dashboard.expiringSoon'),
+      expired: t('dashboard.expired')
+    }) %>;
+    window.locale = '<%= lang === "id" ? "id-ID" : "en-US" %>';
+  </script>
+  <script src="/js/notify.js"></script>
   <script src="/js/dashboard.js"></script>
 </body>
 </html>

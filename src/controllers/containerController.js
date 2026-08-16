@@ -3,8 +3,7 @@ const ServiceError = require('../utils/ServiceError');
 const logger = require('../config/logger');
 
 const errorStatusMap = {
-  VALIDATION_ERROR: 400,
-  NOT_FOUND: 404,
+  INSTANCE_NOT_FOUND: 404,
   CONTAINER_LIMIT_REACHED: 409,
   DOCKER_UNREACHABLE: 503,
   DOCKER_SPAWN_FAILED: 502,
@@ -14,10 +13,11 @@ const errorStatusMap = {
 function handleServiceError(err, res, req) {
   if (err instanceof ServiceError) {
     const status = errorStatusMap[err.code] || 400;
-    return res.status(status).json({ success: false, code: status, message: err.message, data: err.meta || null });
+    const message = res.locals.t(`errors.${err.code}`);
+    return res.status(status).json({ success: false, code: status, message, data: err.meta || null });
   }
   logger.error(`Unexpected error di containerController: ${err.message}`, { stack: err.stack, requestId: req && req.requestId, nim: req && req.session && req.session.nim });
-  return res.status(500).json({ success: false, code: 500, message: 'Terjadi kesalahan pada server', data: null });
+  return res.status(500).json({ success: false, code: 500, message: res.locals.t('common.serverError'), data: null });
 }
 
 async function list(req, res) {
@@ -36,7 +36,7 @@ async function create(req, res) {
     return res.status(201).json({
       success: true,
       code: 201,
-      message: `Container berhasil dibuat`,
+      message: res.locals.t('dashboard.createSuccessTitle'),
       data,
     });
   } catch (err) {
@@ -48,7 +48,7 @@ async function destroy(req, res) {
   try {
     await containerService.destroyForStudent(req.session.nim, req.params.id);
     logger.info(`Container dihapus mahasiswa`, { nim: req.session.nim, containerId: req.params.id, event: 'container_destroyed_by_student' });
-    return res.json({ success: true, code: 200, message: 'Container berhasil dihapus', data: null });
+    return res.json({ success: true, code: 200, message: res.locals.t('dashboard.destroySuccessTitle'), data: null });
   } catch (err) {
     return handleServiceError(err, res, req);
   }

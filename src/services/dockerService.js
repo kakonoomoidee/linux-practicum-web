@@ -100,7 +100,12 @@ async function spawnContainer(nim, usedPorts) {
       StorageOpt: config.container.diskQuotaMb ? { size: `${config.container.diskQuotaMb}M` } : undefined,
       RestartPolicy: { Name: 'no' },
       CapDrop: ['ALL'],
-      CapAdd: ['CHOWN', 'SETUID', 'SETGID', 'DAC_OVERRIDE', 'FOWNER', 'AUDIT_WRITE'],
+      // SYS_CHROOT WAJIB ada - OpenSSH modern melakukan privilege separation dengan
+      // chroot() ke /run/sshd untuk tiap koneksi masuk. Tanpa capability ini, sshd
+      // menerima koneksi TCP (port kebuka), tapi begitu proses handshake dimulai,
+      // chroot() gagal dan koneksi langsung ditutup paksa - persis gejala
+      // "Connection closed by <ip> port <port>" tanpa sempat minta password.
+      CapAdd: ['CHOWN', 'SETUID', 'SETGID', 'DAC_OVERRIDE', 'FOWNER', 'AUDIT_WRITE', 'SYS_CHROOT'],
       SecurityOpt: ['no-new-privileges'],
     },
     ExposedPorts: { '22/tcp': {} },

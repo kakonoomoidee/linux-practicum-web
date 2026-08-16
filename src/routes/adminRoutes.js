@@ -10,6 +10,9 @@ const loginLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).render('admin/login', { error: res.locals.t('common.rateLimited') });
+  },
 });
 
 router.get('/login', redirectIfAdminLoggedIn, adminController.loginPage);
@@ -18,5 +21,6 @@ router.post('/logout', requireAdmin, adminController.logout);
 router.get('/', requireAdmin, adminController.dashboard);
 router.get('/logs', requireAdmin, adminController.logsPage);
 router.post('/instances/:id/destroy', requireAdmin, adminController.destroyInstance);
+router.post('/students/:nim/reset-password', requireAdmin, adminController.resetStudentPassword);
 
 module.exports = router;
