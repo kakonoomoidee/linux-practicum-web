@@ -16,6 +16,13 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
   body { font-family: 'Inter', system-ui, sans-serif; }
+  /* Theming SweetAlert2 biar nyatu sama palet brand (slate/blue), bukan default ungu */
+  .swal2-popup { font-family: 'Inter', system-ui, sans-serif !important; border-radius: 1rem !important; }
+  .swal2-confirm { background-color: #1d4ed8 !important; border-radius: 0.5rem !important; box-shadow: none !important; }
+  .swal2-cancel { border-radius: 0.5rem !important; box-shadow: none !important; }
+  .swal2-deny, .swal2-popup .swal2-styled.swal2-deny { background-color: #dc2626 !important; border-radius: 0.5rem !important; box-shadow: none !important; }
+  .swal2-toast { border-radius: 0.75rem !important; }
 </style>

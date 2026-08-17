@@ -2,11 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
+const cookieParser = require('cookie-parser');
 const path = require('path');
 
 const config = require('./src/config/env');
 const logger = require('./src/config/logger');
 const requestLogger = require('./src/middleware/requestLogger');
+const i18nMiddleware = require('./src/middleware/i18n');
 const { pool } = require('./src/db/connection');
 const { initSchema } = require('./src/db/initSchema');
 
@@ -57,6 +59,9 @@ app.use(session({
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use(cookieParser());
+app.use(i18nMiddleware);
+
 // Page routes (server-rendered EJS)
 app.use('/', viewRoutes);
 app.use('/admin', adminRoutes);
@@ -66,11 +71,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/containers', containerRoutes);
 
 app.use('/api', (req, res) => {
-  res.status(404).json({ success: false, code: 404, message: 'Endpoint tidak ditemukan', data: null });
+  res.status(404).json({ success: false, code: 404, message: res.locals.t('common.endpointNotFound'), data: null });
 });
 
 app.use((req, res) => {
-  res.status(404).send('Halaman tidak ditemukan');
+  res.status(404).send(res.locals.t('common.pageNotFound'));
 });
 
 app.use((err, req, res, next) => {
@@ -80,10 +85,11 @@ app.use((err, req, res, next) => {
     method: req.method,
     path: req.originalUrl,
   });
+  const message = res.locals.t ? res.locals.t('common.serverError') : 'Something went wrong.';
   if (req.path.startsWith('/api/')) {
-    return res.status(500).json({ success: false, code: 500, message: 'Terjadi kesalahan pada server', data: null });
+    return res.status(500).json({ success: false, code: 500, message, data: null });
   }
-  res.status(500).send('Terjadi kesalahan pada server');
+  res.status(500).send(message);
 });
 
 /**

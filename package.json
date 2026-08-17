@@ -1,6 +1,6 @@
 {
   "name": "linux-praktikum-container",
-  "version": "4.1.0",
+  "version": "5.0.0",
   "description": "Platform provisioning container Linux untuk praktikum mahasiswa (layered architecture, PostgreSQL, EJS + Tailwind)",
   "main": "server.js",
   "scripts": {
@@ -29,6 +29,7 @@
     "node-cron": "^3.0.3",
     "pg": "^8.13.0",
     "winston": "^3.15.0",
-    "winston-daily-rotate-file": "^5.0.0"
+    "winston-daily-rotate-file": "^5.0.0",
+    "cookie-parser": "^1.4.6"
   }
 }

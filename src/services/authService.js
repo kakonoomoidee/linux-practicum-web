@@ -6,7 +6,7 @@ const ServiceError = require('../utils/ServiceError');
 
 async function login(nim, password) {
   if (!nim || !password) {
-    throw new ServiceError('NIM dan password wajib diisi', 'VALIDATION_ERROR');
+    throw new ServiceError('NIM dan password wajib diisi', 'MISSING_CREDENTIALS');
   }
 
   const student = await studentRepository.findByNim(nim.trim());
@@ -31,25 +31,25 @@ async function login(nim, password) {
 
 async function changePassword(nim, oldPassword, newPassword) {
   if (!oldPassword || !newPassword) {
-    throw new ServiceError('Password lama dan baru wajib diisi', 'VALIDATION_ERROR');
+    throw new ServiceError('Password lama dan baru wajib diisi', 'MISSING_PASSWORD_FIELDS');
   }
 
   if (newPassword.length < 8) {
-    throw new ServiceError('Password baru minimal 8 karakter', 'VALIDATION_ERROR');
+    throw new ServiceError('Password baru minimal 8 karakter', 'PASSWORD_TOO_SHORT');
   }
 
   if (newPassword === config.auth.defaultPassword) {
-    throw new ServiceError('Password baru tidak boleh sama dengan password default', 'VALIDATION_ERROR');
+    throw new ServiceError('Password baru tidak boleh sama dengan password default', 'PASSWORD_SAME_AS_DEFAULT');
   }
 
   const student = await studentRepository.findByNim(nim);
   if (!student) {
-    throw new ServiceError('Akun tidak ditemukan', 'NOT_FOUND');
+    throw new ServiceError('Akun tidak ditemukan', 'STUDENT_NOT_FOUND');
   }
 
   const match = await bcrypt.compare(oldPassword, student.password_hash);
   if (!match) {
-    throw new ServiceError('Password lama salah', 'INVALID_CREDENTIALS');
+    throw new ServiceError('Password lama salah', 'PASSWORD_INCORRECT');
   }
 
   const newHash = await bcrypt.hash(newPassword, 12);

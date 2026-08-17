@@ -6,10 +6,11 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
   const remember_me = document.getElementById('login-remember').checked;
   const errorEl = document.getElementById('login-error');
   const btn = document.getElementById('btn-login-submit');
+  const i18n = window.i18n || { submitting: 'Signing in...', submit: 'Sign In' };
 
   errorEl.textContent = '';
   btn.disabled = true;
-  btn.textContent = 'Memproses...';
+  btn.textContent = i18n.submitting;
 
   try {
     const res = await fetch('/api/auth/login', {
@@ -21,16 +22,19 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
     const json = await res.json();
 
     if (!res.ok) {
-      errorEl.textContent = json.message || 'Login gagal';
+      errorEl.textContent = json.message;
+      notify.error(json.message);
       btn.disabled = false;
-      btn.textContent = 'Masuk';
+      btn.textContent = i18n.submit;
       return;
     }
 
     window.location.href = json.data.first_login ? '/change-password' : '/dashboard';
   } catch (err) {
-    errorEl.textContent = 'Tidak bisa menghubungi server, coba lagi.';
+    const msg = 'Could not reach the server, please try again.';
+    errorEl.textContent = msg;
+    notify.error(msg);
     btn.disabled = false;
-    btn.textContent = 'Masuk';
+    btn.textContent = i18n.submit;
   }
 });
