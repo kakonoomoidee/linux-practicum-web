@@ -1,6 +1,6 @@
 # 🚶 Walkthrough Fitur
 
-Dokumen ini memberikan tinjauan sistematis terhadap fitur-fitur yang telah diimplementasikan pada platform, beserta referensi lokasi kode terkait untuk memudahkan navigasi saat melakukan perubahan. Rasional di balik keputusan desain dapat ditemukan pada `about-proyek.md`. Panduan operasional (instalasi, deployment) tersedia pada `README.md`.
+Dokumen ini memberikan tinjauan sistematis terhadap fitur-fitur yang telah diimplementasikan pada platform, beserta referensi lokasi kode terkait untuk memudahkan navigasi saat melakukan perubahan. Rasional di balik keputusan desain dapat ditemukan pada `docs/about-project.md`. Panduan operasional (instalasi, deployment) tersedia pada `README.md`.
 
 ---
 
@@ -36,6 +36,13 @@ Halaman utama pengelolaan container mahasiswa.
 
 **Referensi berkas:** `views/dashboard.ejs`, `public/js/dashboard.js`, `src/controllers/containerController.js`, `src/services/containerService.js`.
 
+### 1.4 Settings (`/settings`)
+
+- **Ganti password** kapan saja (tidak seperti `/change-password` yang cuma bisa diakses saat wajib ganti password pertama kali) — form yang sama, memakai endpoint `POST /api/auth/change-password` yang sudah ada.
+- **Preferensi bahasa** — dipilih lewat radio button EN/ID, disimpan ke kolom `preferred_language` pada akun mahasiswa (bukan cuma cookie browser), lewat endpoint baru `POST /api/auth/language`. Preferensi ini otomatis disinkronkan ke cookie setiap kali login, jadi "mengikuti" akun meski berpindah browser/perangkat.
+
+**Referensi berkas:** `views/settings.ejs`, `public/js/settings.js`, `src/controllers/authController.js` (fungsi `updateLanguage`), `src/services/authService.js`.
+
 ---
 
 ## 2. Alur Administrator
@@ -61,6 +68,35 @@ Halaman utama pengelolaan container mahasiswa.
 
 **Referensi berkas:** `views/admin/logs.ejs`, `src/services/logService.js`, `src/controllers/adminController.js` (fungsi `logsPage`).
 
+### 2.4 Settings & API Gateway (`/admin/settings`)
+
+- **Ganti password admin sendiri** — sebelumnya tidak ada jalur self-service untuk ini (cuma bisa lewat `scripts/seed.js` atau ubah manual di database). Sekarang tersedia form khusus, memakai `adminService.changeOwnPassword()`.
+- **Preferensi bahasa** — sama seperti Settings mahasiswa, disimpan ke kolom `preferred_language` pada tabel `admins`.
+- **Manajemen API Key** — bagian inti dari API Gateway:
+  - Form "Generate New Key" — admin cukup isi nama (mis. "Integrasi Moodle"), sistem generate key acak (`plk_...`), ditampilkan **satu kali** lewat modal SweetAlert2 (pola sama seperti password mahasiswa saat container dibuat).
+  - Tabel daftar API key aktif: nama, prefix key (8 karakter awal, aman ditampilkan karena bukan data sensitif), waktu dibuat, waktu terakhir dipakai, dan tombol **Revoke**.
+  - Revoke key langsung membuat key tersebut tidak valid lagi untuk request berikutnya ke `/api/v1/*`, tanpa perlu restart aplikasi.
+
+**Referensi berkas:** `views/admin/settings.ejs`, `public/js/admin-settings.js`, `src/controllers/adminController.js` (fungsi `settingsPage`, `changeOwnPassword`, `createApiKey`, `revokeApiKey`), `src/services/apiKeyService.js`, `src/repositories/apiKeyRepository.js`.
+
+#### API Gateway (`/api/v1/*`)
+
+Endpoint terpisah total dari web UI, didesain untuk dikonsumsi sistem lain (bukan manusia lewat browser), dengan autentikasi API key (header `X-API-Key`) alih-alih session cookie.
+
+| Endpoint | Autentikasi | Deskripsi |
+|---|---|---|
+| `GET /api/v1/health` | Tidak perlu | Health check publik, cocok untuk uptime monitoring |
+| `GET /api/v1/students` | API key wajib | Daftar mahasiswa terdaftar (NIM, nama, status `first_login`) — **tidak pernah** menyertakan `password_hash` |
+| `GET /api/v1/containers` | API key wajib | Daftar container yang sedang aktif beserta NIM pemiliknya |
+
+Karakteristik desain:
+- **Read-only** — endpoint tulis/ubah data sengaja tidak disediakan pada tahap ini, membatasi risiko kalau ada key yang bocor.
+- **Rate limit per API key** (60 request/menit), bukan per IP — satu integrasi yang salah konfigurasi tidak akan saling mengganggu dengan integrasi lain.
+- **Selalu berbahasa Inggris**, tidak ikut sistem i18n web UI (dikonsumsi program, bukan manusia).
+- Key disimpan sebagai hash (`bcrypt`), mengikuti pola yang sama dengan password akun.
+
+**Referensi berkas:** `src/routes/apiV1Routes.js`, `src/controllers/apiV1Controller.js`, `src/middleware/apiKeyAuth.js`, `src/services/apiKeyService.js`.
+
 ---
 
 ## 3. Provisioning Container
@@ -72,7 +108,7 @@ Komponen inti sistem, terletak pada `src/services/containerService.js` dan `src/
 1. Sistem memeriksa apakah mahasiswa terkait sudah memiliki container berstatus `running` pada basis data.
 2. **Apabila ditemukan**, sistem melakukan verifikasi langsung ke Docker Engine untuk memastikan status aktual:
    - Container masih berjalan → permintaan ditolak dengan pesan yang informatif.
-   - Container sudah tidak ada di Docker Engine (dihapus manual, crash, dsb.) → record lama otomatis ditandai `destroyed`, mahasiswa dapat langsung melanjutkan. Mekanisme ini disebut **self-healing** (lihat `about-proyek.md` untuk rasional lengkap).
+   - Container sudah tidak ada di Docker Engine (dihapus manual, crash, dsb.) → record lama otomatis ditandai `destroyed`, mahasiswa dapat langsung melanjutkan. Mekanisme ini disebut **self-healing** (lihat `docs/about-project.md` untuk rasional lengkap).
    - Docker Engine tidak dapat dihubungi sama sekali → sistem **tidak** menghapus record apa pun (mencegah kesalahan data), dan mengembalikan pesan error yang jelas.
 3. Container baru dibuat pada Docker Engine dengan konfigurasi:
    - Base image `praktikum-linux:latest` (dibangun dari `docker/Dockerfile.student`)
@@ -165,4 +201,4 @@ Ringkasan (detail lengkap tersedia pada README bagian "Kebijakan Keamanan"):
 - HTTPS melalui reverse proxy apabila diakses melalui domain internal.
 - Backup PostgreSQL berkala.
 
-Lihat bagian "Roadmap" pada `about-proyek.md` untuk gagasan pengembangan lanjutan yang belum diimplementasikan.
+Lihat bagian "Roadmap" pada `docs/about-project.md` untuk gagasan pengembangan lanjutan yang belum diimplementasikan.

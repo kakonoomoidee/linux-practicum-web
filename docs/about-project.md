@@ -110,6 +110,23 @@ Seluruh parameter konfigurasi pada `docker-compose.yml` — termasuk port Postgr
 
 Menyediakan visibilitas terhadap aktivitas sistem bagi administrator tanpa memerlukan akses terminal ke server — relevan mengingat administrator platform ini tidak selalu memiliki akses SSH langsung ke server produksi, atau lebih memilih antarmuka berbasis browser untuk kebutuhan pemantauan rutin. Implementasi membaca langsung dari file log yang sama dengan yang digunakan oleh Winston, sehingga tidak memerlukan infrastruktur logging tambahan (mis. log aggregator terpisah) untuk kasus penggunaan skala proyek ini.
 
+### Halaman Settings Terpisah dari Change Password Wajib
+
+Sebelumnya, satu-satunya cara mengganti password adalah lewat halaman `/change-password` yang hanya bisa diakses saat `first_login = true` (login pertama). Ini artinya mahasiswa/admin yang sekadar ingin ganti password secara voluntary (bukan karena dipaksa sistem) tidak punya jalur resmi untuk melakukannya. Halaman `/settings` (mahasiswa) dan `/admin/settings` (admin) menyediakan jalur itu, sekaligus jadi tempat menyimpan preferensi bahasa ke akun (bukan cuma cookie per-browser) — supaya preferensi ini konsisten kalau nanti ada fitur lain yang butuh tahu bahasa pilihan user tanpa bergantung pada cookie yang bisa hilang atau berbeda per perangkat.
+
+Admin sebelumnya juga sama sekali tidak punya cara mengganti password akunnya sendiri selain lewat script `seed.js` atau mengubah manual di database — ini celah operasional yang cukup mendasar, ditutup lewat halaman Settings admin.
+
+### API Gateway dengan Autentikasi API Key Terpisah
+
+Platform ini pada dasarnya adalah sistem tertutup (session-based, cuma bisa diakses lewat browser dari jaringan kampus). Tapi ada kebutuhan realistis untuk integrasi programatik dari sistem lain di masa depan — misalnya sinkronisasi data mahasiswa dari/ke sistem akademik, atau dashboard eksternal yang menampilkan status pemakaian container. Untuk kebutuhan ini, autentikasi berbasis session (cookie) tidak cocok — sistem lain butuh cara stabil untuk "membuktikan identitasnya" tanpa proses login interaktif.
+
+Solusinya: API key terpisah total dari sistem login web, dengan karakteristik:
+- **Read-only** - API Gateway (`/api/v1/*`) sengaja dibatasi ke endpoint baca saja (daftar mahasiswa, daftar container aktif). Kemampuan menulis/mengubah data lewat API key tidak disediakan pada tahap ini, untuk membatasi blast radius kalau ada key yang bocor.
+- **Hash, bukan plaintext** - API key mengikuti pola yang sama seperti password: nilai asli cuma ditampilkan sekali saat dibuat, yang tersimpan di database cuma hash-nya (`bcrypt`, sama seperti password akun).
+- **Revocable** - admin bisa mencabut key kapan saja lewat halaman Settings tanpa perlu restart aplikasi atau mengubah kode.
+- **Rate-limited per key** (bukan per IP) - mencegah satu integrasi yang salah konfigurasi (mis. polling terlalu sering) membebani server, sekaligus memudahkan diagnosis kalau ada satu integrasi tertentu yang bermasalah.
+- **Bahasa selalu Inggris** - berbeda dari web UI yang mendukung dua bahasa, response API Gateway konsisten berbahasa Inggris karena dikonsumsi sistem/program, bukan manusia yang butuh preferensi bahasa.
+
 ---
 
 ## Stack Teknologi
@@ -139,7 +156,7 @@ Routes → Controllers → Services → Repositories → PostgreSQL
 
 Pemisahan ini diterapkan untuk memudahkan pengujian, memudahkan penggantian komponen (misalnya migrasi basis data tanpa menyentuh logika bisnis), dan memudahkan pengembang baru memahami lokasi kode yang relevan untuk perubahan tertentu.
 
-Lihat `WALKTHROUGH.md` untuk tinjauan lengkap fitur yang telah diimplementasikan.
+Lihat `docs/walkthrough.md` untuk tinjauan lengkap fitur yang telah diimplementasikan.
 
 ---
 

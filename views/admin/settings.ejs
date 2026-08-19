@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <title><%= t('admin.settingsPageTitle') %> — <%= t('common.appName') %></title>
+  <%- include('../partials/head') %>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-10">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-gradient-to-br from-slate-700 to-slate-900 rounded-lg flex items-center justify-center text-white">
+          <%- include('../partials/icon', { name: 'settings', cls: 'w-5 h-5' }) %>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-slate-900"><%= t('admin.loginTitle') %></p>
+          <p class="text-xs text-slate-500"><%= t('admin.loggedInAs') %> <span class="font-medium"><%= adminUsername %></span></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <%- include('../partials/lang-toggle') %>
+        <a href="/admin" class="text-sm text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center gap-1.5">
+          <%- include('../partials/icon', { name: 'arrow-left', cls: 'w-4 h-4' }) %>
+          <span class="hidden sm:inline"><%= t('admin.navDashboard') %></span>
+        </a>
+        <button id="btn-admin-logout" class="text-sm text-slate-600 hover:text-slate-900 border border-slate-300 hover:border-slate-400 rounded-lg px-3.5 py-1.5 transition-colors flex items-center gap-1.5">
+          <%- include('../partials/icon', { name: 'log-out', cls: 'w-4 h-4' }) %>
+          <span class="hidden sm:inline"><%= t('common.logout') %></span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-4 py-8">
+
+    <div class="mb-6 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
+        <%- include('../partials/icon', { name: 'settings', cls: 'w-5 h-5' }) %>
+      </div>
+      <h1 class="text-2xl font-semibold text-slate-900"><%= t('admin.settingsTitle') %></h1>
+    </div>
+
+    <!-- ==== Change Password ==== -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8 mb-6">
+      <div class="flex items-center gap-2 mb-1">
+        <%- include('../partials/icon', { name: 'lock', cls: 'w-4 h-4 text-slate-400' }) %>
+        <h2 class="text-base font-semibold text-slate-900"><%= t('settings.passwordSectionTitle') %></h2>
+      </div>
+      <p class="text-xs text-slate-500 mb-5"><%= t('settings.passwordSectionSubtitle') %></p>
+
+      <form id="form-admin-password" autocomplete="on">
+        <div class="mb-4">
+          <label for="admin-set-old" class="block text-sm font-medium text-slate-700 mb-1.5"><%= t('settings.currentPasswordLabel') %></label>
+          <%- include('../partials/password-field', { id: 'admin-set-old', name: 'old_password', autocomplete: 'current-password', minlength: null, placeholder: null }) %>
+        </div>
+        <div class="mb-4">
+          <label for="admin-set-new" class="block text-sm font-medium text-slate-700 mb-1.5"><%= t('settings.newPasswordLabel') %></label>
+          <%- include('../partials/password-field', { id: 'admin-set-new', name: 'new_password', autocomplete: 'new-password', minlength: 8, placeholder: null }) %>
+        </div>
+        <div class="mb-5">
+          <label for="admin-set-confirm" class="block text-sm font-medium text-slate-700 mb-1.5"><%= t('settings.confirmPasswordLabel') %></label>
+          <%- include('../partials/password-field', { id: 'admin-set-confirm', name: 'confirm_password', autocomplete: 'new-password', minlength: 8, placeholder: null }) %>
+        </div>
+        <button type="submit" id="btn-admin-update-password"
+          class="bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-all active:scale-[0.98]">
+          <%= t('settings.updatePasswordButton') %>
+        </button>
+      </form>
+    </div>
+
+    <!-- ==== Language ==== -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8 mb-6">
+      <div class="flex items-center gap-2 mb-1">
+        <%- include('../partials/icon', { name: 'globe', cls: 'w-4 h-4 text-slate-400' }) %>
+        <h2 class="text-base font-semibold text-slate-900"><%= t('settings.languageSectionTitle') %></h2>
+      </div>
+      <p class="text-xs text-slate-500 mb-5"><%= t('settings.languageSectionSubtitle') %></p>
+
+      <form id="form-admin-language">
+        <div class="flex gap-3 mb-5">
+          <label class="flex-1 border border-slate-200 rounded-lg p-3 cursor-pointer has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 transition-colors flex items-center gap-2">
+            <input type="radio" name="lang" value="en" <%= lang === 'en' ? 'checked' : '' %> class="text-brand-600 focus:ring-brand-500">
+            <span class="text-sm text-slate-700"><%= t('settings.languageEnglish') %></span>
+          </label>
+          <label class="flex-1 border border-slate-200 rounded-lg p-3 cursor-pointer has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 transition-colors flex items-center gap-2">
+            <input type="radio" name="lang" value="id" <%= lang === 'id' ? 'checked' : '' %> class="text-brand-600 focus:ring-brand-500">
+            <span class="text-sm text-slate-700"><%= t('settings.languageIndonesian') %></span>
+          </label>
+        </div>
+        <button type="submit"
+          class="bg-slate-800 hover:bg-slate-900 text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-all active:scale-[0.98]">
+          <%= t('settings.saveLanguageButton') %>
+        </button>
+      </form>
+    </div>
+
+    <!-- ==== API Keys (Gateway) ==== -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8">
+      <div class="flex items-center gap-2 mb-1">
+        <%- include('../partials/icon', { name: 'key', cls: 'w-4 h-4 text-slate-400' }) %>
+        <h2 class="text-base font-semibold text-slate-900"><%= t('admin.apiKeysSectionTitle') %></h2>
+      </div>
+      <p class="text-xs text-slate-500 mb-5"><%= t('admin.apiKeysSectionSubtitle') %></p>
+
+      <form id="form-create-api-key" class="flex flex-wrap gap-3 mb-6">
+        <input type="text" id="api-key-name" placeholder="<%= t('admin.apiKeyNamePlaceholder') %>" required
+          class="flex-1 min-w-[200px] text-sm border border-slate-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500">
+        <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors inline-flex items-center gap-2">
+          <%- include('../partials/icon', { name: 'key', cls: 'w-4 h-4' }) %>
+          <%= t('admin.generateApiKeyButton') %>
+        </button>
+      </form>
+
+      <div id="api-keys-table-wrapper" class="border border-slate-200 rounded-xl overflow-hidden">
+        <% if (apiKeys.length === 0) { %>
+          <div id="no-api-keys" class="px-6 py-8 text-center text-sm text-slate-400"><%= t('admin.noApiKeys') %></div>
+        <% } else { %>
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 text-left text-xs text-slate-500 bg-slate-50">
+                <th class="px-4 py-2.5 font-medium"><%= t('admin.colApiKeyName') %></th>
+                <th class="px-4 py-2.5 font-medium"><%= t('admin.colApiKeyPrefix') %></th>
+                <th class="px-4 py-2.5 font-medium"><%= t('admin.colApiKeyCreated') %></th>
+                <th class="px-4 py-2.5 font-medium"><%= t('admin.colApiKeyLastUsed') %></th>
+                <th class="px-4 py-2.5 font-medium"></th>
+              </tr>
+            </thead>
+            <tbody id="api-keys-tbody" class="divide-y divide-slate-100">
+              <% apiKeys.forEach(function(k) { %>
+                <tr class="hover:bg-slate-50" data-key-id="<%= k.id %>">
+                  <td class="px-4 py-3 text-slate-900 font-medium"><%= k.name %></td>
+                  <td class="px-4 py-3"><code class="bg-slate-100 px-2 py-0.5 rounded text-xs"><%= k.keyPrefix %>...</code></td>
+                  <td class="px-4 py-3 text-slate-500 text-xs whitespace-nowrap"><%= new Date(k.createdAt).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US') %></td>
+                  <td class="px-4 py-3 text-slate-500 text-xs whitespace-nowrap"><%= k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US') : t('admin.apiKeyNeverUsed') %></td>
+                  <td class="px-4 py-3">
+                    <button class="btn-revoke-key text-xs text-red-600 hover:text-white hover:bg-red-600 border border-red-200 hover:border-red-600 rounded-lg px-3 py-1.5 transition-colors" data-id="<%= k.id %>">
+                      <%= t('admin.revokeButton') %>
+                    </button>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    window.i18n = <%- JSON.stringify({
+      passwordUpdateSuccess: t('settings.passwordUpdateSuccess'),
+      mismatchError: t('changePassword.mismatchError'),
+      languageUpdateSuccess: t('settings.languageUpdateSuccess'),
+      apiKeyCreatedTitle: t('admin.apiKeyCreatedTitle'),
+      apiKeyCreatedText: t('admin.apiKeyCreatedText'),
+      revokeConfirmTitle: t('admin.revokeConfirmTitle'),
+      revokeConfirmText: t('admin.revokeConfirmText'),
+      revokeButton: t('admin.revokeButton'),
+      cancel: t('common.cancel'),
+      revokeSuccess: t('admin.revokeSuccess'),
+      noApiKeys: t('admin.noApiKeys')
+    }) %>;
+  </script>
+  <script src="/js/password-toggle.js"></script>
+  <script src="/js/notify.js"></script>
+  <script src="/js/admin-settings.js"></script>
+</body>
+</html>

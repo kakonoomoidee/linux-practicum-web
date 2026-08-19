@@ -35,6 +35,19 @@ const insertIfNotExists = async (nim, nama, passwordHash) => {
   return rows.length > 0; // true kalau baru ditambahkan, false kalau sudah ada (skip)
 };
 
+const updateLanguage = async (nim, lang) => {
+  await query('UPDATE students SET preferred_language = $1 WHERE nim = $2', [lang, nim]);
+};
+
+// Dipakai API Gateway (/api/v1/students) - sengaja ga include password_hash sama sekali.
+const findAll = async () => {
+  const { rows } = await query(
+    'SELECT nim, nama, first_login, created_at FROM students ORDER BY nim',
+    []
+  );
+  return rows;
+};
+
 const countAll = async () => {
   const { rows } = await query('SELECT COUNT(*)::int as c FROM students', []);
   return rows[0].c;
@@ -44,6 +57,8 @@ module.exports = {
   findByNim,
   updatePassword,
   resetPasswordByAdmin,
+  updateLanguage,
   insertIfNotExists,
+  findAll,
   countAll,
 };

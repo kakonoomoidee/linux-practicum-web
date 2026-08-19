@@ -23,6 +23,9 @@
           <%- include('../partials/icon', { name: 'clipboard-list', cls: 'w-4 h-4' }) %>
           <span class="hidden sm:inline"><%= t('admin.navLogs') %></span>
         </a>
+        <a href="/admin/settings" class="text-sm text-slate-600 hover:text-slate-900 p-2 rounded-lg hover:bg-slate-100 transition-colors" title="<%= t('admin.navSettings') %>">
+          <%- include('../partials/icon', { name: 'settings', cls: 'w-4 h-4' }) %>
+        </a>
         <button id="btn-admin-logout" class="text-sm text-slate-600 hover:text-slate-900 border border-slate-300 hover:border-slate-400 rounded-lg px-3.5 py-1.5 transition-colors flex items-center gap-1.5">
           <%- include('../partials/icon', { name: 'log-out', cls: 'w-4 h-4' }) %>
           <span class="hidden sm:inline"><%= t('common.logout') %></span>

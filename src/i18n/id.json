@@ -17,7 +17,26 @@
     "logoutSuccess": "Berhasil keluar",
     "notLoggedIn": "Kamu belum login, silakan login dulu",
     "mustChangePassword": "Kamu wajib ganti password default sebelum lanjut",
-    "rateLimited": "Terlalu banyak percobaan, coba lagi beberapa menit lagi"
+    "rateLimited": "Terlalu banyak percobaan, coba lagi beberapa menit lagi",
+    "navSettings": "Pengaturan"
+  },
+  "settings": {
+    "pageTitle": "Pengaturan",
+    "title": "Pengaturan",
+    "subtitle": "Kelola preferensi akun kamu",
+    "passwordSectionTitle": "Ganti Password",
+    "passwordSectionSubtitle": "Gunakan password kuat yang tidak dipakai di tempat lain",
+    "currentPasswordLabel": "Password Saat Ini",
+    "newPasswordLabel": "Password Baru (min. 8 karakter)",
+    "confirmPasswordLabel": "Ulangi Password Baru",
+    "updatePasswordButton": "Update Password",
+    "passwordUpdateSuccess": "Password berhasil diperbarui",
+    "languageSectionTitle": "Bahasa",
+    "languageSectionSubtitle": "Pilih bahasa tampilan yang kamu suka. Preferensi ini disimpan ke akunmu.",
+    "languageEnglish": "English",
+    "languageIndonesian": "Bahasa Indonesia",
+    "saveLanguageButton": "Simpan Preferensi",
+    "languageUpdateSuccess": "Preferensi bahasa berhasil disimpan"
   },
   "login": {
     "pageTitle": "Masuk",
@@ -83,6 +102,7 @@
     "loggedInAs": "Masuk sebagai",
     "navLogs": "Log Server",
     "navDashboard": "Dashboard",
+    "navSettings": "Pengaturan",
     "summaryStudents": "Total Mahasiswa",
     "summaryActive": "Instance Aktif",
     "summaryTotal": "Total Dibuat (sepanjang waktu)",
@@ -133,7 +153,26 @@
     "logsResetButton": "Reset",
     "logsNoMatch": "Tidak ada log yang cocok dengan filter ini.",
     "logsShowing": "Menampilkan {shown} dari {total} baris yang cocok (file: {files})",
-    "logsFolderNote": "Log disimpan di folder logs/, rotasi harian, otomatis dihapus setelah 14 hari. Halaman ini membaca maksimal 3 file terakhir per kategori."
+    "logsFolderNote": "Log disimpan di folder logs/, rotasi harian, otomatis dihapus setelah 14 hari. Halaman ini membaca maksimal 3 file terakhir per kategori.",
+    "settingsPageTitle": "Pengaturan",
+    "settingsTitle": "Pengaturan Admin",
+    "apiKeysSectionTitle": "API Key",
+    "apiKeysSectionSubtitle": "Kelola key untuk akses programatik ke API Gateway (/api/v1)",
+    "apiKeyNameLabel": "Nama Key",
+    "apiKeyNamePlaceholder": "Contoh: Integrasi Moodle",
+    "generateApiKeyButton": "Generate Key Baru",
+    "apiKeyCreatedTitle": "API Key Dibuat",
+    "apiKeyCreatedText": "Salin key ini sekarang - tidak akan ditampilkan lagi.",
+    "colApiKeyName": "Nama",
+    "colApiKeyPrefix": "Prefix Key",
+    "colApiKeyCreated": "Dibuat",
+    "colApiKeyLastUsed": "Terakhir Dipakai",
+    "apiKeyNeverUsed": "Belum pernah dipakai",
+    "revokeButton": "Cabut",
+    "revokeConfirmTitle": "Cabut API key ini?",
+    "revokeConfirmText": "Sistem manapun yang pakai key ini akan langsung kehilangan akses.",
+    "revokeSuccess": "API key berhasil dicabut",
+    "noApiKeys": "Belum ada API key yang dibuat."
   },
   "errors": {
     "MISSING_CREDENTIALS": "NIM dan password wajib diisi.",
@@ -151,6 +190,8 @@
     "INVALID_ADMIN_CREDENTIALS": "Username atau password salah.",
     "STUDENT_NOT_FOUND": "Mahasiswa tidak ditemukan.",
     "INSTANCE_NOT_FOUND": "Instance tidak ditemukan atau sudah tidak aktif.",
+    "ADMIN_NOT_FOUND": "Akun admin tidak ditemukan.",
+    "INVALID_LANGUAGE": "Bahasa tidak didukung.",
     "SERVICE_ERROR": "Terjadi kesalahan. Silakan coba lagi."
   }
 }

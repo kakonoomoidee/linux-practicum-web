@@ -16,6 +16,7 @@ const viewRoutes = require('./src/routes/viewRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const containerRoutes = require('./src/routes/containerRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
+const apiV1Routes = require('./src/routes/apiV1Routes');
 
 const { startCleanupCron } = require('./src/cron/cleanupJob');
 const { ensureNetwork } = require('./src/services/dockerService');
@@ -69,6 +70,13 @@ app.use('/admin', adminRoutes);
 // API routes (JSON, dipanggil dari public/js/*.js)
 app.use('/api/auth', authRoutes);
 app.use('/api/containers', containerRoutes);
+
+// API Gateway - punya autentikasi & rate limit sendiri (API key, bukan session),
+// sengaja dipasang SEBELUM app.use('/api', 404-catch-all) di bawah supaya ke-handle duluan.
+// i18nMiddleware tetap aktif secara global (di atas) tapi controller-nya sengaja
+// TIDAK memakainya - respons API Gateway selalu bahasa Inggris untuk konsumsi
+// sistem lain (lihat komentar di middleware/apiKeyAuth.js).
+app.use('/api/v1', apiV1Routes);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ success: false, code: 404, message: res.locals.t('common.endpointNotFound'), data: null });

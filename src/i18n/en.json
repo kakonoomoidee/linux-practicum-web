@@ -17,7 +17,26 @@
     "logoutSuccess": "Signed out successfully",
     "notLoggedIn": "You are not signed in. Please sign in first.",
     "mustChangePassword": "You must change the default password before continuing.",
-    "rateLimited": "Too many attempts. Please try again in a few minutes."
+    "rateLimited": "Too many attempts. Please try again in a few minutes.",
+    "navSettings": "Settings"
+  },
+  "settings": {
+    "pageTitle": "Settings",
+    "title": "Settings",
+    "subtitle": "Manage your account preferences",
+    "passwordSectionTitle": "Change Password",
+    "passwordSectionSubtitle": "Use a strong password you don't use elsewhere",
+    "currentPasswordLabel": "Current Password",
+    "newPasswordLabel": "New Password (min. 8 characters)",
+    "confirmPasswordLabel": "Confirm New Password",
+    "updatePasswordButton": "Update Password",
+    "passwordUpdateSuccess": "Password updated successfully",
+    "languageSectionTitle": "Language",
+    "languageSectionSubtitle": "Choose your preferred display language. This is saved to your account.",
+    "languageEnglish": "English",
+    "languageIndonesian": "Bahasa Indonesia",
+    "saveLanguageButton": "Save Preference",
+    "languageUpdateSuccess": "Language preference saved"
   },
   "login": {
     "pageTitle": "Sign In",
@@ -83,6 +102,7 @@
     "loggedInAs": "Signed in as",
     "navLogs": "Server Logs",
     "navDashboard": "Dashboard",
+    "navSettings": "Settings",
     "summaryStudents": "Total Students",
     "summaryActive": "Active Instances",
     "summaryTotal": "Total Created (all time)",
@@ -133,7 +153,26 @@
     "logsResetButton": "Reset",
     "logsNoMatch": "No log entries match this filter.",
     "logsShowing": "Showing {shown} of {total} matching lines (files: {files})",
-    "logsFolderNote": "Logs are stored in the logs/ folder, rotated daily, and automatically deleted after 14 days. This page reads the last 3 files per category."
+    "logsFolderNote": "Logs are stored in the logs/ folder, rotated daily, and automatically deleted after 14 days. This page reads the last 3 files per category.",
+    "settingsPageTitle": "Settings",
+    "settingsTitle": "Admin Settings",
+    "apiKeysSectionTitle": "API Keys",
+    "apiKeysSectionSubtitle": "Manage keys for programmatic access to the API Gateway (/api/v1)",
+    "apiKeyNameLabel": "Key Name",
+    "apiKeyNamePlaceholder": "e.g. Moodle Integration",
+    "generateApiKeyButton": "Generate New Key",
+    "apiKeyCreatedTitle": "API Key Created",
+    "apiKeyCreatedText": "Copy this key now — it will not be shown again.",
+    "colApiKeyName": "Name",
+    "colApiKeyPrefix": "Key Prefix",
+    "colApiKeyCreated": "Created",
+    "colApiKeyLastUsed": "Last Used",
+    "apiKeyNeverUsed": "Never used",
+    "revokeButton": "Revoke",
+    "revokeConfirmTitle": "Revoke this API key?",
+    "revokeConfirmText": "Any system using this key will immediately lose access.",
+    "revokeSuccess": "API key revoked",
+    "noApiKeys": "No API keys have been created yet."
   },
   "errors": {
     "MISSING_CREDENTIALS": "Student ID and password are required.",
@@ -151,6 +190,8 @@
     "INVALID_ADMIN_CREDENTIALS": "Incorrect username or password.",
     "STUDENT_NOT_FOUND": "Student not found.",
     "INSTANCE_NOT_FOUND": "Instance not found or already inactive.",
+    "ADMIN_NOT_FOUND": "Admin account not found.",
+    "INVALID_LANGUAGE": "Unsupported language.",
     "SERVICE_ERROR": "Something went wrong. Please try again."
   }
 }

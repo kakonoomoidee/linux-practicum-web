@@ -21,5 +21,6 @@ router.post('/login', loginLimiter, authController.login);
 router.post('/change-password', requireLogin, authController.changePassword);
 router.get('/me', requireLogin, authController.me);
 router.post('/logout', requireLogin, authController.logout);
+router.post('/language', requireLogin, authController.updateLanguage);
 
 module.exports = router;
