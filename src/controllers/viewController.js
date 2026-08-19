@@ -17,6 +17,13 @@ function dashboardPage(req, res) {
   });
 }
 
+function settingsPage(req, res) {
+  res.render('settings', {
+    nama: req.session.nama,
+    nim: req.session.nim,
+  });
+}
+
 function root(req, res) {
   if (req.session && req.session.nim) {
     return res.redirect(req.session.firstLogin ? '/change-password' : '/dashboard');
@@ -24,4 +31,4 @@ function root(req, res) {
   res.redirect('/login');
 }
 
-module.exports = { loginPage, changePasswordPage, dashboardPage, root };
+module.exports = { loginPage, changePasswordPage, dashboardPage, settingsPage, root };

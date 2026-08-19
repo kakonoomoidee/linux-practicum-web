@@ -23,7 +23,7 @@ async function login(username, password) {
     throw new ServiceError('Username atau password salah', 'INVALID_ADMIN_CREDENTIALS');
   }
 
-  return { id: admin.id, username: admin.username };
+  return { id: admin.id, username: admin.username, preferredLanguage: admin.preferred_language };
 }
 
 /**
@@ -98,4 +98,48 @@ async function resetStudentPassword(nim, newPassword) {
   logger.info(`Password mahasiswa direset oleh admin`, { nim, event: 'admin_reset_password' });
 }
 
-module.exports = { login, getDashboardData, forceDestroyInstance, resetStudentPassword };
+/**
+ * Admin ganti password akun admin-nya sendiri lewat halaman Settings - sebelumnya
+ * ga ada cara self-service buat ini, cuma bisa lewat script seed atau ubah manual di DB.
+ */
+async function changeOwnPassword(adminId, oldPassword, newPassword) {
+  if (!oldPassword || !newPassword) {
+    throw new ServiceError('Password lama dan baru wajib diisi', 'MISSING_PASSWORD_FIELDS');
+  }
+
+  if (newPassword.length < 8) {
+    throw new ServiceError('Password baru minimal 8 karakter', 'PASSWORD_TOO_SHORT');
+  }
+
+  const admin = await adminRepository.findById(adminId);
+  if (!admin) {
+    throw new ServiceError('Akun admin tidak ditemukan', 'ADMIN_NOT_FOUND');
+  }
+
+  const match = await bcrypt.compare(oldPassword, admin.password_hash);
+  if (!match) {
+    throw new ServiceError('Password lama salah', 'PASSWORD_INCORRECT');
+  }
+
+  const newHash = await bcrypt.hash(newPassword, 12);
+  await adminRepository.updatePassword(adminId, newHash);
+  logger.info(`Admin ganti password sendiri`, { adminUsername: admin.username, event: 'admin_self_password_change' });
+}
+
+const SUPPORTED_LANGUAGES = ['en', 'id'];
+
+async function updateLanguage(adminId, lang) {
+  if (!SUPPORTED_LANGUAGES.includes(lang)) {
+    throw new ServiceError('Bahasa tidak didukung', 'INVALID_LANGUAGE');
+  }
+  await adminRepository.updateLanguage(adminId, lang);
+}
+
+module.exports = {
+  login,
+  getDashboardData,
+  forceDestroyInstance,
+  resetStudentPassword,
+  changeOwnPassword,
+  updateLanguage,
+};

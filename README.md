@@ -1,8 +1,8 @@
-# 🐧 Platform Praktikum Linux — Container On-Demand (v4.2)
+# 🐧 Platform Praktikum Linux — Container On-Demand
 
 Platform penyediaan lingkungan Linux berbasis container untuk kebutuhan praktikum mahasiswa, dengan model self-service melalui browser. Browser hanya berfungsi sebagai **entry point** untuk provisioning; akses operasional tetap dilakukan mahasiswa melalui SSH dari terminal masing-masing. Setiap container memiliki masa hidup terbatas (TTL, default 24 jam) dan dihapus otomatis setelah kedaluwarsa.
 
-📖 Dokumentasi terkait: **[about-proyek.md](./about-proyek.md)** (latar belakang proyek dan rasional keputusan teknis) dan **[WALKTHROUGH.md](./WALKTHROUGH.md)** (tinjauan fitur yang telah diimplementasikan).
+📖 Dokumentasi terkait: **[docs/about-project.md](./docs/about-project.md)** (latar belakang proyek dan rasional keputusan teknis), **[docs/walkthrough.md](./docs/walkthrough.md)** (tinjauan fitur yang telah diimplementasikan), **[CHANGELOG.md](./CHANGELOG.md)** (riwayat perubahan), **[CONTRIBUTING.md](./CONTRIBUTING.md)** (panduan kontribusi), **[SECURITY.md](./SECURITY.md)** (kebijakan keamanan), dan **[AGENTS.md](./AGENTS.md)** (konvensi proyek untuk AI coding agent).
 
 > ⚠️ **Catatan desain:** platform ini dirancang untuk diakses eksklusif dari jaringan kampus/LAN dan tidak dimaksudkan untuk diekspos ke internet publik.
 
@@ -24,33 +24,7 @@ Instalasi Node.js dan PostgreSQL secara manual pada server **tidak diperlukan** 
 
 ## Changelog
 
-**v4.2**
-- Halaman **Log Server** pada admin panel (`/admin/logs`) — administrator dapat meninjau log aplikasi langsung dari browser, dengan filter berdasarkan level, kata kunci, dan jumlah baris.
-- Seluruh konfigurasi Docker Compose kini bersumber dari variabel environment, termasuk port PostgreSQL sisi host (`DB_HOST_PORT`) — menghindari konflik dengan instance PostgreSQL lain yang mungkin sudah berjalan di port default 5432.
-- Perbaikan keamanan: pengaturan `trust proxy` tidak lagi menggunakan nilai `true` (yang berisiko terhadap spoofing IP), digantikan variabel `TRUST_PROXY_HOPS` yang eksplisit.
-
-**v4.1**
-- **Structured logging** menggunakan Winston — level log mengikuti konvensi industri (`error`/`warn`/`info`/`http`/`debug`), format JSON untuk file dan console produksi, format berwarna untuk console pengembangan.
-- **Request logging** — setiap HTTP request memperoleh `requestId` unik untuk keperluan tracing, dicatat beserta method, path, status, durasi, IP, dan NIM (jika terautentikasi).
-- **Rotasi file log otomatis** — `logs/error-YYYY-MM-DD.log` (khusus level error) dan `logs/combined-YYYY-MM-DD.log` (seluruh level), rotasi harian dengan retensi 14 hari, dipasang sebagai volume pada Docker Compose agar persisten dan dapat diakses langsung dari host.
-- Seluruh pemanggilan `console.log`/`console.error` pada codebase telah dimigrasikan ke logger terstruktur.
-
-**v4.0**
-- **Auto-detect host SSH** — variabel `SSH_HOST_DISPLAY` tidak lagi wajib diisi manual. Sistem otomatis menggunakan `localhost` saat berjalan di WSL, atau memindai antarmuka jaringan pada server Linux. Override manual tetap didukung melalui `.env`.
-- **Remember me** pada login — sesi dapat diperpanjang hingga 30 hari apabila dicentang (default: durasi sesi lebih pendek).
-- **Toggle visibilitas password** pada seluruh field password.
-- **Skeleton loading** pada dashboard selama proses pemuatan status, pembuatan container, dan penghapusan container.
-- Dokumentasi proyek: `about-proyek.md` dan `WALKTHROUGH.md`.
-
-**v3.0**
-- Migrasi ke **layered architecture** (Controller → Service → Repository).
-- Migrasi basis data dari SQLite ke **PostgreSQL**.
-- Migrasi frontend ke **EJS** (server-rendered) dengan **Tailwind CSS**.
-- **Admin panel** — pemantauan instance aktif dan statistik penggunaan per mahasiswa.
-- **Self-healing container**: sistem mendeteksi dan membersihkan secara otomatis record container yang telah tidak sinkron dengan Docker Engine (misalnya akibat penghapusan manual atau crash), sehingga tidak lagi memerlukan intervensi manual pada basis data.
-- Sesi disimpan pada PostgreSQL (bukan in-memory), menghilangkan risiko memory leak dan kehilangan sesi saat restart.
-- Migrasi arsitektur frontend dari SPA client-side ke server-rendered per-route, menghilangkan kelas bug terkait state management pada form input.
-- Orkestrasi deployment melalui **Docker Compose**.
+Riwayat perubahan lengkap ada di [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
@@ -85,8 +59,10 @@ Provisioning Docker (`dockerService.js`) diperlakukan sebagai service tersendiri
 
 ```
 .
-├── about-proyek.md                    # Latar belakang proyek dan rasional keputusan teknis
-├── WALKTHROUGH.md                     # Tinjauan fitur yang telah diimplementasikan
+├── docs/
+│   ├── about-project.md                # Latar belakang proyek dan rasional keputusan teknis
+│   └── walkthrough.md                  # Tinjauan fitur yang telah diimplementasikan
+├── AGENTS.md                           # Panduan konvensi proyek untuk AI coding agent
 ├── docker-compose.yml                 # Orkestrasi service app + PostgreSQL
 ├── Dockerfile                         # Image untuk web app (multi-stage build)
 ├── .dockerignore
@@ -109,21 +85,29 @@ Provisioning Docker (`dockerService.js`) diperlakukan sebagai service tersendiri
 │   │   ├── containerService.js        # Self-healing dan rollback logic
 │   │   ├── dockerService.js
 │   │   ├── adminService.js
-│   │   └── logService.js              # Pembacaan & parsing file log untuk admin panel
+│   │   ├── logService.js              # Pembacaan & parsing file log untuk admin panel
+│   │   └── apiKeyService.js           # Generate/verifikasi/revoke API key (API Gateway)
 │   ├── controllers/                   # Penanganan HTTP request/response
 │   │   ├── authController.js
 │   │   ├── containerController.js
 │   │   ├── viewController.js
-│   │   └── adminController.js
+│   │   ├── adminController.js
+│   │   └── apiV1Controller.js         # Handler untuk /api/v1/* (API Gateway)
 │   ├── middleware/
 │   │   ├── auth.js                    # Guard sesi mahasiswa
 │   │   ├── adminAuth.js               # Guard sesi admin
+│   │   ├── apiKeyAuth.js              # Guard API key untuk /api/v1/*
+│   │   ├── i18n.js                    # Deteksi bahasa (cookie/query param) + fungsi t()
 │   │   └── requestLogger.js           # Logging HTTP request + requestId untuk tracing
 │   ├── routes/
 │   │   ├── authRoutes.js              # /api/auth/*
 │   │   ├── containerRoutes.js         # /api/containers/*
-│   │   ├── viewRoutes.js              # Halaman: /login, /dashboard, dll.
-│   │   └── adminRoutes.js             # /admin/*
+│   │   ├── viewRoutes.js              # Halaman: /login, /dashboard, /settings, dll.
+│   │   ├── adminRoutes.js             # /admin/*
+│   │   └── apiV1Routes.js             # /api/v1/* (API Gateway)
+│   ├── i18n/
+│   │   ├── en.json                    # Dictionary bahasa Inggris (default)
+│   │   └── id.json                    # Dictionary bahasa Indonesia
 │   ├── cron/cleanupJob.js             # Penghapusan otomatis container kedaluwarsa
 │   └── utils/
 │       ├── ServiceError.js            # Error class kustom antar layer
@@ -132,15 +116,19 @@ Provisioning Docker (`dockerService.js`) diperlakukan sebagai service tersendiri
 ├── views/                             # Template EJS (Tailwind via CDN)
 │   ├── partials/
 │   │   ├── head.ejs
-│   │   └── password-field.ejs         # Komponen input password dengan toggle visibilitas
+│   │   ├── icon.ejs                   # SVG icon reusable (semua UI, tanpa emoji)
+│   │   ├── lang-toggle.ejs            # Toggle bahasa EN/ID
+│   │   └── password-field.ejs         # Input password dengan toggle visibilitas
 │   ├── login.ejs
 │   ├── change-password.ejs
 │   ├── dashboard.ejs
+│   ├── settings.ejs                   # Settings mahasiswa (password, bahasa)
 │   └── admin/
 │       ├── login.ejs
 │       ├── dashboard.ejs              # Monitoring instance dan statistik penggunaan
-│       └── logs.ejs                   # Log viewer
-├── public/js/                         # Client-side script untuk komunikasi dengan /api/*
+│       ├── logs.ejs                   # Log viewer
+│       └── settings.ejs               # Settings admin (password, bahasa, API key)
+├── public/js/                         # Client-side script (termasuk notify.js - wrapper SweetAlert2)
 ├── docker/                            # Dockerfile dan entrypoint image mahasiswa
 ├── scripts/
 │   ├── seed.js                        # Seeding akun admin (kredensial aman)
@@ -188,7 +176,7 @@ Platform ini sepenuhnya dibungkus dengan **Docker Compose** — dua service (`ap
 
 Karena aplikasi memerlukan kendali atas Docker Engine untuk melakukan provisioning container mahasiswa, service `app` dijalankan dengan **Docker socket host dipasang ke dalamnya** (`/var/run/docker.sock`). Mekanisme ini memungkinkan `app` memerintahkan Docker Engine milik host untuk membuat/menghapus container mahasiswa sebagai *sibling container* — bukan Docker-in-Docker, melainkan delegasi perintah ke Docker Engine yang sama dengan yang digunakan host. Konsekuensinya, container mahasiswa yang dibuat memiliki port yang di-bind langsung ke host.
 
-Service `app` juga menggunakan `network_mode: host`, yang memungkinkan **auto-detect IP LAN server** untuk ditampilkan kepada mahasiswa tanpa konfigurasi manual (lihat `about-proyek.md` untuk rasional lengkap). Pada Docker Desktop (Windows/Mac), mode ini kurang konsisten akibat perbedaan virtualisasi jaringan — apabila auto-detect tidak akurat, isi `SSH_HOST_DISPLAY` secara manual pada `.env`; nilai manual senantiasa diprioritaskan.
+Service `app` juga menggunakan `network_mode: host`, yang memungkinkan **auto-detect IP LAN server** untuk ditampilkan kepada mahasiswa tanpa konfigurasi manual (lihat `docs/about-project.md` untuk rasional lengkap). Pada Docker Desktop (Windows/Mac), mode ini kurang konsisten akibat perbedaan virtualisasi jaringan — apabila auto-detect tidak akurat, isi `SSH_HOST_DISPLAY` secara manual pada `.env`; nilai manual senantiasa diprioritaskan.
 
 ### 1. Clone repository
 
@@ -361,8 +349,40 @@ Akses melalui `/admin/login` menggunakan kredensial hasil `npm run seed`. Fitur 
 
 - **Ringkasan statistik**: total mahasiswa terdaftar, jumlah instance aktif, total container yang pernah dibuat, jumlah login dalam 24 jam terakhir.
 - **Tabel instance aktif**: NIM, nama mahasiswa, nama container, perintah SSH, waktu pembuatan/kedaluwarsa, serta opsi force-delete.
-- **Tabel statistik penggunaan per mahasiswa**: total login, total container yang pernah dibuat, status aktif, dan waktu pembuatan container terakhir.
+- **Tabel statistik penggunaan per mahasiswa**: total login, total container yang pernah dibuat, status aktif, waktu pembuatan container terakhir, dan opsi **reset password** mahasiswa (mahasiswa wajib ganti lagi di login berikutnya).
 - **Log viewer** (`/admin/logs`): lihat bagian Monitoring dan Logging di atas.
+- **Settings** (`/admin/settings`): ganti password admin sendiri, preferensi bahasa, dan manajemen API key (lihat bagian API Gateway di bawah).
+
+---
+
+## Settings / Personalisasi
+
+Mahasiswa (`/settings`) dan admin (`/admin/settings`) punya halaman pengaturan masing-masing untuk:
+- **Ganti password** kapan saja (tidak perlu menunggu dipaksa sistem seperti alur login pertama).
+- **Preferensi bahasa** (EN/ID) — tersimpan ke akun (kolom `preferred_language`), bukan cuma cookie browser, jadi konsisten walau berpindah perangkat/browser.
+
+Toggle bahasa cepat (EN/ID di pojok kanan atas tiap halaman) tetap tersedia untuk switch sesaat tanpa perlu ke halaman Settings — itu cuma menyimpan ke cookie, sedangkan pilihan di halaman Settings tersimpan permanen ke akun.
+
+---
+
+## API Gateway
+
+Selain web UI (session-based), tersedia juga API terpisah di `/api/v1/*` untuk integrasi programatik dari sistem eksternal (mis. sinkronisasi data akademik), memakai autentikasi **API key** (bukan session cookie).
+
+| Endpoint | Autentikasi | Deskripsi |
+|---|---|---|
+| `GET /api/v1/health` | Tidak perlu | Health check publik |
+| `GET /api/v1/students` | `X-API-Key` wajib | Daftar mahasiswa (NIM, nama, status) - read-only |
+| `GET /api/v1/containers` | `X-API-Key` wajib | Daftar container aktif - read-only |
+
+**Kelola API key** lewat `/admin/settings`: generate key baru (ditampilkan sekali, mirip password container), lihat daftar key aktif beserta kapan terakhir dipakai, dan revoke kapan saja.
+
+Contoh pemakaian:
+```bash
+curl -H "X-API-Key: plk_xxxxxxxxxxxxxxxxxxxxxxxx" http://<ip-server>:3000/api/v1/students
+```
+
+Karakteristik: read-only (tidak ada endpoint tulis/ubah data lewat API key pada tahap ini), rate limit 60 request/menit **per API key** (bukan per IP), key disimpan sebagai hash (`bcrypt`) bukan plaintext, dan response selalu berbahasa Inggris (tidak ikut sistem i18n web UI). Detail rasional desain ada di `docs/about-project.md`.
 
 ---
 

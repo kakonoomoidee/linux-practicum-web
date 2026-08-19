@@ -10,6 +10,7 @@ const errorStatusMap = {
   PASSWORD_SAME_AS_DEFAULT: 400,
   PASSWORD_INCORRECT: 401,
   STUDENT_NOT_FOUND: 404,
+  INVALID_LANGUAGE: 400,
 };
 
 function handleServiceError(err, res, req) {
@@ -37,6 +38,11 @@ async function login(req, res) {
     if (remember_me) {
       req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 hari
     }
+
+    // Sinkronkan cookie bahasa browser dengan preferensi yang tersimpan di akun -
+    // preferensi akun jadi "sumber kebenaran" begitu user login, menang atas cookie
+    // browser yang mungkin basi (misal login dari browser/device lain).
+    res.cookie('lang', result.preferredLanguage, { maxAge: 365 * 24 * 60 * 60 * 1000, httpOnly: false, sameSite: 'lax' });
 
     return res.json({
       success: true,
@@ -73,6 +79,17 @@ async function me(req, res) {
   });
 }
 
+async function updateLanguage(req, res) {
+  try {
+    const { lang } = req.body;
+    await authService.updateLanguage(req.session.nim, lang);
+    res.cookie('lang', lang, { maxAge: 365 * 24 * 60 * 60 * 1000, httpOnly: false, sameSite: 'lax' });
+    return res.json({ success: true, code: 200, message: res.locals.t('settings.languageUpdateSuccess'), data: null });
+  } catch (err) {
+    return handleServiceError(err, res, req);
+  }
+}
+
 async function logout(req, res) {
   const nim = req.session.nim;
   const t = res.locals.t;
@@ -82,4 +99,4 @@ async function logout(req, res) {
   });
 }
 
-module.exports = { login, changePassword, me, logout };
+module.exports = { login, changePassword, me, logout, updateLanguage };

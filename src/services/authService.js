@@ -26,6 +26,7 @@ async function login(nim, password) {
     nim: student.nim,
     nama: student.nama,
     firstLogin: student.first_login,
+    preferredLanguage: student.preferred_language,
   };
 }
 
@@ -57,4 +58,13 @@ async function changePassword(nim, oldPassword, newPassword) {
   await activityLogRepository.log(nim, 'password_changed');
 }
 
-module.exports = { login, changePassword };
+const SUPPORTED_LANGUAGES = ['en', 'id'];
+
+async function updateLanguage(nim, lang) {
+  if (!SUPPORTED_LANGUAGES.includes(lang)) {
+    throw new ServiceError('Bahasa tidak didukung', 'INVALID_LANGUAGE');
+  }
+  await studentRepository.updateLanguage(nim, lang);
+}
+
+module.exports = { login, changePassword, updateLanguage };

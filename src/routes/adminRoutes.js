@@ -22,5 +22,10 @@ router.get('/', requireAdmin, adminController.dashboard);
 router.get('/logs', requireAdmin, adminController.logsPage);
 router.post('/instances/:id/destroy', requireAdmin, adminController.destroyInstance);
 router.post('/students/:nim/reset-password', requireAdmin, adminController.resetStudentPassword);
+router.get('/settings', requireAdmin, adminController.settingsPage);
+router.post('/settings/password', requireAdmin, adminController.changeOwnPassword);
+router.post('/settings/language', requireAdmin, adminController.updateLanguage);
+router.post('/api-keys', requireAdmin, adminController.createApiKey);
+router.post('/api-keys/:id/revoke', requireAdmin, adminController.revokeApiKey);
 
 module.exports = router;
