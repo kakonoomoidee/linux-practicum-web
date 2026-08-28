@@ -1,0 +1,43 @@
+# Dependabot - cek pembaruan dependency otomatis, buka PR sendiri kalau ada
+# versi baru yang aman di-upgrade. Dokumentasi lengkap:
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates
+
+version: 2
+updates:
+  # === npm (Node.js dependencies) ===
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      # Kelompokkan update minor/patch jadi satu PR biar ga banjir notifikasi -
+      # major version tetap dipisah per-PR karena lebih berisiko breaking change
+      # dan butuh review lebih hati-hati satu-satu (lihat SECURITY.md soal
+      # kenapa dockerode sengaja belum di-upgrade ke v5).
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      # dockerode SENGAJA di-exclude dari auto-update - lihat SECURITY.md bagian
+      # "Kerentanan Dependency yang Diketahui" untuk penjelasan kenapa upgrade
+      # ke v5.x butuh verifikasi manual dengan Docker Engine aktif dulu, ga
+      # boleh di-merge otomatis tanpa testing end-to-end.
+      - dependency-name: "dockerode"
+        update-types: ["version-update:semver-major"]
+
+  # === Docker base images (Dockerfile) ===
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+
+  # === GitHub Actions (.github/workflows) ===
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
