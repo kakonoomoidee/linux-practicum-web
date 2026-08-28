@@ -20,6 +20,7 @@ router.post('/login', loginLimiter, adminController.login);
 router.post('/logout', requireAdmin, adminController.logout);
 router.get('/', requireAdmin, adminController.dashboard);
 router.get('/logs', requireAdmin, adminController.logsPage);
+router.get('/activity-log', requireAdmin, adminController.activityLogPage);
 router.post('/instances/:id/destroy', requireAdmin, adminController.destroyInstance);
 router.post('/students/:nim/reset-password', requireAdmin, adminController.resetStudentPassword);
 router.get('/settings', requireAdmin, adminController.settingsPage);

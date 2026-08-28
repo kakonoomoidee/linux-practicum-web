@@ -278,6 +278,24 @@ Login mahasiswa menggunakan NIM dengan password default `12345678` (wajib digant
 
 Port PostgreSQL sisi host (`DB_HOST_PORT`, default `5433`) hanya di-bind ke `127.0.0.1` (loopback), bukan ke seluruh antarmuka jaringan (`0.0.0.0`). Dengan konfigurasi ini, PostgreSQL tetap tidak dapat diakses dari jaringan kampus/LAN, namun tetap dapat dijangkau oleh proses lain pada mesin/VM yang sama — termasuk service `app` (karena menggunakan `network_mode: host`), maupun tool eksternal seperti DBeaver/pgAdmin untuk keperluan debugging langsung dari host.
 
+### Backup dan Restore Basis Data
+
+```bash
+npm run backup                          # backup manual, tersimpan di backups/
+npm run restore backups/nama-file.sql.gz  # restore dari backup tertentu
+```
+
+`scripts/backup-db.sh` otomatis mendeteksi apakah dijalankan lewat Docker Compose (backup lewat `docker compose exec db pg_dump`) atau setup manual (backup langsung ke `PGHOST`/`PGUSER` dari `.env`). Backup lama dihapus otomatis setelah 14 hari (ubah lewat env `BACKUP_RETENTION_DAYS`).
+
+**Untuk backup terjadwal otomatis**, tambahkan ke crontab di host (bukan di dalam container):
+```bash
+crontab -e
+# Backup tiap hari jam 2 pagi:
+0 2 * * * cd /path/ke/linux-praktikum && ./scripts/backup-db.sh >> logs/backup.log 2>&1
+```
+
+`scripts/restore-db.sh` meminta konfirmasi eksplisit sebelum menimpa data (proses ini destruktif — seluruh tabel di-drop dan dibuat ulang dari isi backup).
+
 ### Update ke Versi Terbaru
 
 ```bash

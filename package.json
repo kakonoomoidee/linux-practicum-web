@@ -19,7 +19,9 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --runInBand",
     "test:integration": "jest --config jest.integration.config.js --runInBand",
-    "test:all": "npm run test && npm run test:integration"
+    "test:all": "npm run test && npm run test:integration",
+    "backup": "./scripts/backup-db.sh",
+    "restore": "./scripts/restore-db.sh"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
