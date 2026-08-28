@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <title><%= t('admin.activityLogPageTitle') %> — <%= t('common.appName') %></title>
+  <%- include('../partials/head') %>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-10">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-gradient-to-br from-slate-700 to-slate-900 rounded-lg flex items-center justify-center text-white">
+          <%- include('../partials/icon', { name: 'settings', cls: 'w-5 h-5' }) %>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-slate-900"><%= t('admin.loginTitle') %></p>
+          <p class="text-xs text-slate-500"><%= t('admin.loggedInAs') %> <span class="font-medium"><%= adminUsername %></span></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <%- include('../partials/lang-toggle') %>
+        <a href="/admin" class="text-sm text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center gap-1.5">
+          <%- include('../partials/icon', { name: 'arrow-left', cls: 'w-4 h-4' }) %>
+          <span class="hidden sm:inline"><%= t('admin.navDashboard') %></span>
+        </a>
+        <button id="btn-admin-logout" class="text-sm text-slate-600 hover:text-slate-900 border border-slate-300 hover:border-slate-400 rounded-lg px-3.5 py-1.5 transition-colors flex items-center gap-1.5">
+          <%- include('../partials/icon', { name: 'log-out', cls: 'w-4 h-4' }) %>
+          <span class="hidden sm:inline"><%= t('common.logout') %></span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+
+    <div class="mb-6 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
+        <%- include('../partials/icon', { name: 'activity', cls: 'w-5 h-5' }) %>
+      </div>
+      <div>
+        <h1 class="text-2xl font-semibold text-slate-900"><%= t('admin.activityLogTitle') %></h1>
+        <p class="text-sm text-slate-500"><%= t('admin.activityLogSubtitle') %></p>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <form method="GET" action="/admin/activity-log" class="bg-white border border-slate-200 rounded-xl p-4 mb-6 flex flex-wrap items-end gap-3">
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1"><%= t('admin.activityLogNimLabel') %></label>
+        <input type="text" name="nim" value="<%= filterNim %>" placeholder="<%= t('admin.activityLogNimPlaceholder') %>"
+          class="text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-500">
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1"><%= t('admin.activityLogActionLabel') %></label>
+        <select name="action" class="text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-500 min-w-[180px]">
+          <option value="" <%= filterAction === '' ? 'selected' : '' %>><%= t('admin.activityLogAllActions') %></option>
+          <% availableActions.forEach(function(a) { %>
+            <option value="<%= a %>" <%= filterAction === a ? 'selected' : '' %>><%= a %></option>
+          <% }); %>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1"><%= t('admin.activityLogLimitLabel') %></label>
+        <select name="limit" class="text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-500">
+          <option value="50" <%= String(filterLimit) === '50' ? 'selected' : '' %>>50</option>
+          <option value="100" <%= String(filterLimit) === '100' ? 'selected' : '' %>>100</option>
+          <option value="200" <%= String(filterLimit) === '200' ? 'selected' : '' %>>200</option>
+          <option value="500" <%= String(filterLimit) === '500' ? 'selected' : '' %>>500</option>
+        </select>
+      </div>
+
+      <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+        <%= t('admin.activityLogApplyButton') %>
+      </button>
+      <a href="/admin/activity-log" class="text-sm text-slate-500 hover:text-slate-700 px-2 py-2"><%= t('admin.activityLogResetButton') %></a>
+    </form>
+
+    <!-- Activity entries -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <% if (entries.length === 0) { %>
+        <div class="px-6 py-10 text-center text-sm text-slate-400"><%= t('admin.activityLogNoMatch') %></div>
+      <% } else { %>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 text-left text-xs text-slate-500">
+                <th class="px-6 py-3 font-medium"><%= t('admin.colActivityTime') %></th>
+                <th class="px-6 py-3 font-medium"><%= t('admin.colActivityNim') %></th>
+                <th class="px-6 py-3 font-medium"><%= t('admin.colActivityName') %></th>
+                <th class="px-6 py-3 font-medium"><%= t('admin.colActivityAction') %></th>
+                <th class="px-6 py-3 font-medium"><%= t('admin.colActivityDetail') %></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <% entries.forEach(function(e) { %>
+                <%
+                  const actionStyles = {
+                    login_success: 'bg-green-100 text-green-700',
+                    login_failed: 'bg-red-100 text-red-700',
+                    password_changed: 'bg-blue-100 text-blue-700',
+                    password_reset_by_admin: 'bg-amber-100 text-amber-700',
+                    container_created: 'bg-brand-50 text-brand-700',
+                    container_destroyed_manual: 'bg-slate-100 text-slate-600',
+                    container_destroyed_ttl: 'bg-slate-100 text-slate-600',
+                    container_destroyed_by_admin: 'bg-amber-100 text-amber-700',
+                    container_auto_cleaned_stale: 'bg-purple-100 text-purple-700',
+                  };
+                  const badgeClass = actionStyles[e.action] || 'bg-slate-100 text-slate-600';
+                  const dateLocale = lang === 'id' ? 'id-ID' : 'en-US';
+                %>
+                <tr class="hover:bg-slate-50 transition-colors">
+                  <td class="px-6 py-3 text-slate-500 text-xs whitespace-nowrap"><%= new Date(e.created_at).toLocaleString(dateLocale) %></td>
+                  <td class="px-6 py-3 text-slate-900 font-medium"><%= e.nim %></td>
+                  <td class="px-6 py-3 text-slate-700"><%= e.student_nama || '—' %></td>
+                  <td class="px-6 py-3">
+                    <span class="text-xs font-medium px-2 py-1 rounded-full <%= badgeClass %>"><%= e.action %></span>
+                  </td>
+                  <td class="px-6 py-3 text-slate-500 text-xs"><%= e.detail || '—' %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
+  </main>
+
+  <script src="/js/csrf.js"></script>
+  <script src="/js/notify.js"></script>
+  <script>
+    document.getElementById('btn-admin-logout').addEventListener('click', async () => {
+      await fetch('/admin/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Token': getCsrfToken() } });
+      window.location.href = '/admin/login';
+    });
+  </script>
+</body>
+</html>

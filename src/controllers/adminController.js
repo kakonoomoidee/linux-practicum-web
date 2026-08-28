@@ -112,6 +112,24 @@ async function logsPage(req, res) {
   }
 }
 
+async function activityLogPage(req, res) {
+  const { nim, action, limit } = req.query;
+  try {
+    const { entries, availableActions } = await adminService.getActivityLog({ nim, action, limit });
+    res.render('admin/activity-log', {
+      adminUsername: req.session.adminUsername,
+      entries,
+      availableActions,
+      filterNim: nim || '',
+      filterAction: action || '',
+      filterLimit: limit || 200,
+    });
+  } catch (err) {
+    logger.error(`Gagal load activity log: ${err.message}`, { stack: err.stack, adminUsername: req.session.adminUsername });
+    res.status(500).send(res.locals.t('common.serverError'));
+  }
+}
+
 // ==== Settings ====
 
 async function settingsPage(req, res) {
@@ -179,6 +197,7 @@ module.exports = {
   destroyInstance,
   resetStudentPassword,
   logsPage,
+  activityLogPage,
   settingsPage,
   changeOwnPassword,
   updateLanguage,

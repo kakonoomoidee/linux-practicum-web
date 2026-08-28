@@ -19,6 +19,10 @@
       </div>
       <div class="flex items-center gap-2">
         <%- include('../partials/lang-toggle') %>
+        <a href="/admin/activity-log" class="text-sm text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center gap-1.5">
+          <%- include('../partials/icon', { name: 'activity', cls: 'w-4 h-4' }) %>
+          <span class="hidden sm:inline"><%= t('admin.navActivityLog') %></span>
+        </a>
         <a href="/admin/logs" class="text-sm text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center gap-1.5">
           <%- include('../partials/icon', { name: 'clipboard-list', cls: 'w-4 h-4' }) %>
           <span class="hidden sm:inline"><%= t('admin.navLogs') %></span>
