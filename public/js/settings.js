@@ -1,9 +1,12 @@
 const i18n = window.i18n || {};
 
 async function api(method, url, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (method !== 'GET') headers['X-CSRF-Token'] = getCsrfToken();
+
   const res = await fetch(url, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     credentials: 'same-origin',
     body: body ? JSON.stringify(body) : undefined,
   });

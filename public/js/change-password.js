@@ -22,7 +22,7 @@ document.getElementById('form-change-password').addEventListener('submit', async
   try {
     const res = await fetch('/api/auth/change-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
       credentials: 'same-origin',
       body: JSON.stringify({ old_password, new_password }),
     });
