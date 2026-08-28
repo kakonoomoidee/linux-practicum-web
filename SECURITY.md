@@ -20,6 +20,14 @@ Beberapa bagian sistem yang secara sengaja diberi akses istimewa dan perlu dipah
 - **Akses `sudo` mahasiswa** di dalam container mereka masing-masing: ini disengaja untuk tujuan pembelajaran, dimitigasi lewat isolasi infrastruktur (`CapDrop: ALL` + capability minimal, resource limit, isolasi jaringan antar-container). Lihat `src/services/dockerService.js` untuk detail konfigurasi.
 - **API Gateway** (`/api/v1/*`, kalau sudah diimplementasikan): endpoint ini memakai autentikasi API key terpisah dari sesi login web. API key **tidak pernah** disimpan plaintext di database - hanya hash yang disimpan, nilai asli hanya ditampilkan sekali saat pembuatan key. Cabut (revoke) API key yang sudah tidak dipakai lewat admin panel.
 
+## Kerentanan Dependency yang Diketahui (Diterima Sementara)
+
+Per commit terakhir, `npm audit` melaporkan 2 kerentanan severity **moderate**, keduanya dari `uuid` (versi lama) yang dipakai secara transitif oleh `dockerode@4.x`:
+
+- **Kenapa belum di-upgrade**: `dockerode@5.x` tersedia dan menghapus kerentanan ini, tapi merupakan major version bump untuk library paling kritis di proyek ini (mengendalikan seluruh provisioning container mahasiswa). Tanpa akses ke Docker Engine beneran untuk verifikasi end-to-end saat perubahan ini dibuat, upgrade ini sengaja **ditunda** daripada mengambil risiko regresi diam-diam pada fitur inti.
+- **Kenapa risikonya rendah untuk sekarang**: kerentanan ini ("missing buffer bounds check" pada fungsi `uuid` versi lama) hanya berpotensi terekspos kalau ada input dari pengguna yang mengalir ke parameter `buf` fungsi UUID generation - proyek ini tidak memanggil `uuid` secara langsung sama sekali (dipakai murni internal oleh `dockerode` untuk keperluannya sendiri, dengan pola pemanggilan yang tidak melibatkan input pengguna).
+- **Rencana ke depan**: upgrade ke `dockerode@5.x` sebaiknya dilakukan sambil menjalankan verifikasi manual penuh (build image, provisioning container beneran, hingga SSH ke container yang dihasilkan) di lingkungan dengan Docker Engine aktif, sebelum di-merge ke `main`. Jalankan `npm audit` secara berkala untuk memantau apakah ada fix yang lebih minor tersedia di kemudian hari.
+
 ## Praktik yang Sudah Diterapkan
 
 - Password (akun web maupun Linux mahasiswa) di-hash dengan `bcrypt`, tidak pernah disimpan plaintext.
