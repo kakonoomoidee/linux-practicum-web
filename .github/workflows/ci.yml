@@ -1,0 +1,196 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-syntax:
+    name: Syntax Check & i18n Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check semua file JavaScript
+        run: |
+          find . -name "*.js" \
+            -not -path "./node_modules/*" \
+            -not -path "./coverage/*" \
+            -exec node --check {} \;
+
+      - name: Validasi i18n - en.json dan id.json harus valid JSON dan key-nya sinkron
+        run: |
+          node -e "
+          const en = require('./src/i18n/en.json');
+          const id = require('./src/i18n/id.json');
+          function flatten(d, prefix = '') {
+            const keys = new Set();
+            for (const [k, v] of Object.entries(d)) {
+              const full = prefix ? \`\${prefix}.\${k}\` : k;
+              if (typeof v === 'object' && v !== null) {
+                for (const nested of flatten(v, full)) keys.add(nested);
+              } else {
+                keys.add(full);
+              }
+            }
+            return keys;
+          }
+          const enKeys = flatten(en);
+          const idKeys = flatten(id);
+          const enOnly = [...enKeys].filter((k) => !idKeys.has(k));
+          const idOnly = [...idKeys].filter((k) => !enKeys.has(k));
+          if (enOnly.length > 0 || idOnly.length > 0) {
+            console.error('Key i18n TIDAK SINKRON antara en.json dan id.json:');
+            if (enOnly.length) console.error('  Cuma ada di en.json:', enOnly);
+            if (idOnly.length) console.error('  Cuma ada di id.json:', idOnly);
+            process.exit(1);
+          }
+          console.log(\`OK - \${enKeys.size} key tersinkron sempurna antara en.json dan id.json\`);
+          "
+
+      - name: Render check semua template EJS (compile + actual render, bukan cuma compile)
+        run: |
+          node -e "
+          const ejs = require('ejs');
+          const path = require('path');
+          const en = require('./src/i18n/en.json');
+          function getNested(obj, keyPath) {
+            return keyPath.split('.').reduce((a, k) => (a && a[k] !== undefined ? a[k] : undefined), obj);
+          }
+          function t(key, vars) {
+            let value = getNested(en, key) ?? key;
+            if (vars) value = value.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? String(vars[k]) : m));
+            return value;
+          }
+          const dummyLocals = {
+            t, lang: 'en', csrfToken: 'dummy-token-ci',
+            nama: 'Test', nim: '20220140020', ttlHours: 24,
+            adminUsername: 'admin', apiKeys: [], error: null,
+            summary: { total_students: 0, active_containers: 0, total_containers_ever: 0, logins_last_24h: 0 },
+            runningInstances: [], usageStats: [],
+            lines: [], filesRead: [], truncated: false, totalMatched: 0,
+            filterLevel: 'all', filterSearch: '', filterLimit: 200,
+            message: 'test',
+          };
+          const readdir = require('fs').readdirSync;
+          function findEjsFiles(dir, base = dir) {
+            let results = [];
+            for (const entry of readdir(dir, { withFileTypes: true })) {
+              const full = path.join(dir, entry.name);
+              if (entry.isDirectory()) results = results.concat(findEjsFiles(full, base));
+              else if (entry.name.endsWith('.ejs') && !full.includes('partials')) results.push(path.relative(base, full));
+            }
+            return results;
+          }
+          const files = findEjsFiles('views');
+          let failed = false;
+          let pending = files.length;
+          files.forEach((f) => {
+            ejs.renderFile(path.join('views', f), dummyLocals, {}, (err) => {
+              pending--;
+              if (err) {
+                console.error('FAIL:', f, '-', err.message);
+                failed = true;
+              } else {
+                console.log('OK:', f);
+              }
+              if (pending === 0 && failed) process.exit(1);
+            });
+          });
+          "
+
+      - name: Validasi package.json (JSON well-formed)
+        run: node -e "require('./package.json'); console.log('package.json OK')"
+
+  unit-tests:
+    name: Unit Tests (Jest, fully mocked)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Jalankan unit test
+        run: npm test
+
+  integration-tests:
+    name: Integration Tests (Jest + PostgreSQL asli)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: praktikum_user
+          POSTGRES_PASSWORD: testpass123
+          POSTGRES_DB: praktikum_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Jalankan integration test
+        run: npm run test:integration
+        env:
+          DATABASE_URL: postgres://praktikum_user:testpass123@localhost:5432/praktikum_db
+
+  docker-compose-validation:
+    name: Validasi Docker Compose Config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Siapkan .env dummy dari .env.example
+        run: cp .env.example .env
+
+      - name: Validasi syntax docker-compose.yml
+        run: docker compose config --quiet
+
+      - name: Build image app (tanpa menjalankan - cuma pastikan Dockerfile valid)
+        run: docker compose build app
+
+  security-audit:
+    name: npm audit (informational, tidak menggagalkan build)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: npm audit
+        run: npm audit --audit-level=high
