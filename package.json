@@ -1,6 +1,6 @@
 {
   "name": "linux-praktikum-container",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "Platform provisioning container Linux untuk praktikum mahasiswa (layered architecture, PostgreSQL, EJS + Tailwind)",
   "main": "server.js",
   "scripts": {
@@ -14,11 +14,17 @@
     "docker:seed": "docker compose exec app node scripts/seed.js",
     "docker:import-students": "docker compose exec app node scripts/import-students.js",
     "logs:tail": "tail -f logs/combined-*.log",
-    "logs:errors": "tail -f logs/error-*.log"
+    "logs:errors": "tail -f logs/error-*.log",
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --runInBand",
+    "test:integration": "jest --config jest.integration.config.js --runInBand",
+    "test:all": "npm run test && npm run test:integration"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
+    "bcrypt": "^6.0.0",
     "connect-pg-simple": "^10.0.0",
+    "cookie-parser": "^1.4.6",
     "csv-parse": "^5.5.6",
     "dockerode": "^4.0.2",
     "dotenv": "^16.4.5",
@@ -26,10 +32,14 @@
     "express": "^4.21.0",
     "express-session": "^1.18.0",
     "express-rate-limit": "^7.4.0",
-    "node-cron": "^3.0.3",
+    "node-cron": "^4.6.0",
     "pg": "^8.13.0",
     "winston": "^3.15.0",
     "winston-daily-rotate-file": "^5.0.0",
-    "cookie-parser": "^1.4.6"
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
   }
 }

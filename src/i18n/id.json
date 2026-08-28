@@ -192,6 +192,18 @@
     "INSTANCE_NOT_FOUND": "Instance tidak ditemukan atau sudah tidak aktif.",
     "ADMIN_NOT_FOUND": "Akun admin tidak ditemukan.",
     "INVALID_LANGUAGE": "Bahasa tidak didukung.",
-    "SERVICE_ERROR": "Terjadi kesalahan. Silakan coba lagi."
+    "SERVICE_ERROR": "Terjadi kesalahan. Silakan coba lagi.",
+    "notFoundPageTitle": "Halaman Tidak Ditemukan",
+    "notFoundPageHeading": "404",
+    "notFoundPageText": "Halaman yang kamu cari tidak ada atau mungkin sudah dipindahkan.",
+    "notFoundPageAction": "Kembali ke beranda",
+    "serverErrorPageTitle": "Terjadi Kesalahan",
+    "serverErrorPageHeading": "500",
+    "serverErrorPageText": "Ada kesalahan tak terduga di server. Sudah tercatat di log dan akan kami tindaklanjuti.",
+    "serverErrorPageAction": "Kembali ke beranda",
+    "forbiddenPageTitle": "Sesi Kadaluarsa atau Tidak Valid",
+    "forbiddenPageText": "Sesi form kamu sudah kadaluarsa atau request tidak bisa diverifikasi. Silakan kembali dan coba lagi.",
+    "forbiddenPageAction": "Kembali",
+    "CSRF_TOKEN_INVALID": "Sesi kamu sudah kadaluarsa atau request tidak bisa diverifikasi. Silakan refresh halaman dan coba lagi."
   }
 }

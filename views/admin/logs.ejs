@@ -130,10 +130,11 @@
 
   </main>
 
+  <script src="/js/csrf.js"></script>
   <script src="/js/notify.js"></script>
   <script>
     document.getElementById('btn-admin-logout').addEventListener('click', async () => {
-      await fetch('/admin/logout', { method: 'POST', credentials: 'same-origin' });
+      await fetch('/admin/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Token': getCsrfToken() } });
       window.location.href = '/admin/login';
     });
   </script>

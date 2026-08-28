@@ -15,7 +15,7 @@ document.getElementById('form-login').addEventListener('submit', async (e) => {
   try {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
       credentials: 'same-origin',
       body: JSON.stringify({ nim, password, remember_me }),
     });

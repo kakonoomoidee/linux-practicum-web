@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <title><%= t('errors.notFoundPageTitle') %> — <%= t('common.appName') %></title>
+  <%- include('../partials/head') %>
+</head>
+<body class="bg-gradient-to-br from-slate-50 via-white to-blue-50 min-h-screen flex items-center justify-center p-4">
+  <div class="text-center max-w-md">
+    <div class="w-20 h-20 bg-slate-100 rounded-full mx-auto mb-6 flex items-center justify-center text-slate-400">
+      <%- include('../partials/icon', { name: 'box', cls: 'w-9 h-9' }) %>
+    </div>
+    <p class="text-6xl font-bold text-slate-200 mb-2"><%= t('errors.notFoundPageHeading') %></p>
+    <h1 class="text-xl font-semibold text-slate-900 mb-2"><%= t('errors.notFoundPageTitle') %></h1>
+    <p class="text-sm text-slate-500 mb-6"><%= t('errors.notFoundPageText') %></p>
+    <a href="/" class="inline-block bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm px-5 py-2.5 rounded-lg transition-colors">
+      <%= t('errors.notFoundPageAction') %>
+    </a>
+  </div>
+</body>
+</html>

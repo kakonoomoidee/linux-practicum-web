@@ -36,10 +36,11 @@ async function cleanupExpiredContainers() {
 }
 
 function startCleanupCron() {
-  cron.schedule(config.cron.cleanupPattern, () => {
+  const task = cron.schedule(config.cron.cleanupPattern, () => {
     cleanupExpiredContainers().catch((err) => logger.error(`Error saat cleanup: ${err.message}`, { stack: err.stack }));
   });
   logger.info(`Cleanup job aktif dengan pattern: "${config.cron.cleanupPattern}"`, { event: 'cron_job_started' });
+  return task;
 }
 
 module.exports = { startCleanupCron, cleanupExpiredContainers };

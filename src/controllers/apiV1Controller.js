@@ -1,15 +1,38 @@
 const studentRepository = require('../repositories/studentRepository');
 const containerRepository = require('../repositories/containerRepository');
+const { pool } = require('../db/connection');
 const packageJson = require('../../package.json');
 const logger = require('../config/logger');
 
 // Endpoint publik, TIDAK butuh API key - buat monitoring/uptime check dari luar.
-function health(req, res) {
-  res.json({
-    success: true,
-    code: 200,
-    message: 'OK',
-    data: { status: 'ok', version: packageJson.version, timestamp: new Date().toISOString() },
+// SENGAJA memverifikasi koneksi database beneran (bukan cuma "app-nya nyala"),
+// karena health check yang selalu bilang "ok" tanpa ngecek apa pun itu misleading -
+// app bisa aja masih nyala tapi ga bisa layani request sama sekali kalau DB down.
+async function health(req, res) {
+  const checks = { database: 'unknown' };
+  let healthy = true;
+
+  try {
+    await pool.query('SELECT 1');
+    checks.database = 'ok';
+  } catch (err) {
+    checks.database = 'error';
+    healthy = false;
+    logger.error(`Health check: koneksi database gagal: ${err.message}`);
+  }
+
+  const statusCode = healthy ? 200 : 503;
+
+  res.status(statusCode).json({
+    success: healthy,
+    code: statusCode,
+    message: healthy ? 'OK' : 'Service degraded',
+    data: {
+      status: healthy ? 'ok' : 'degraded',
+      checks,
+      version: packageJson.version,
+      timestamp: new Date().toISOString(),
+    },
   });
 }
 

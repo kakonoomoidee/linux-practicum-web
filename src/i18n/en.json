@@ -192,6 +192,18 @@
     "INSTANCE_NOT_FOUND": "Instance not found or already inactive.",
     "ADMIN_NOT_FOUND": "Admin account not found.",
     "INVALID_LANGUAGE": "Unsupported language.",
-    "SERVICE_ERROR": "Something went wrong. Please try again."
+    "SERVICE_ERROR": "Something went wrong. Please try again.",
+    "notFoundPageTitle": "Page Not Found",
+    "notFoundPageHeading": "404",
+    "notFoundPageText": "The page you're looking for doesn't exist or may have been moved.",
+    "notFoundPageAction": "Back to homepage",
+    "serverErrorPageTitle": "Something Went Wrong",
+    "serverErrorPageHeading": "500",
+    "serverErrorPageText": "An unexpected error occurred on our end. It's been logged and we'll look into it.",
+    "serverErrorPageAction": "Back to homepage",
+    "forbiddenPageTitle": "Session Expired or Invalid",
+    "forbiddenPageText": "Your form session has expired or the request could not be verified. Please go back and try again.",
+    "forbiddenPageAction": "Go back",
+    "CSRF_TOKEN_INVALID": "Your session has expired or the request could not be verified. Please refresh the page and try again."
   }
 }
