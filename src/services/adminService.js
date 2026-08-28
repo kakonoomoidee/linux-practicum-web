@@ -135,6 +135,19 @@ async function updateLanguage(adminId, lang) {
   await adminRepository.updateLanguage(adminId, lang);
 }
 
+/**
+ * Data buat halaman /admin/activity-log - riwayat aktivitas SEMUA mahasiswa
+ * (login, ganti password, bikin/hapus container, dst), beda dari log server
+ * teknis (/admin/logs) yang isinya level error/warn/info dari Winston.
+ */
+async function getActivityLog({ nim, action, limit } = {}) {
+  const [entries, availableActions] = await Promise.all([
+    activityLogRepository.findAll({ nim: nim || null, action: action || null, limit: limit || 200 }),
+    activityLogRepository.distinctActions(),
+  ]);
+  return { entries, availableActions };
+}
+
 module.exports = {
   login,
   getDashboardData,
@@ -142,4 +155,5 @@ module.exports = {
   resetStudentPassword,
   changeOwnPassword,
   updateLanguage,
+  getActivityLog,
 };
