@@ -80,6 +80,7 @@ jobs:
             runningInstances: [], usageStats: [],
             lines: [], filesRead: [], truncated: false, totalMatched: 0,
             filterLevel: 'all', filterSearch: '', filterLimit: 200,
+            filterNim: '', filterAction: '', availableActions: [], entries: [],
             message: 'test',
           };
           const readdir = require('fs').readdirSync;
