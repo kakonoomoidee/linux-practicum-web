@@ -1,5 +1,5 @@
 # ===== Stage 1: build dependencies (butuh compiler buat native module: bcrypt, ssh2, cpu-features) =====
-FROM node:20-bookworm-slim AS deps
+FROM node:26-bookworm-slim AS deps
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 # ===== Stage 2: runtime image (ga bawa compiler, lebih kecil & aman) =====
-FROM node:20-bookworm-slim
+FROM node:26-bookworm-slim
 
 WORKDIR /app
 
