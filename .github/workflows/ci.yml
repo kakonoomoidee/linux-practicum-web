@@ -11,9 +11,9 @@ jobs:
     name: Syntax Check & i18n Validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'npm'
@@ -80,6 +80,7 @@ jobs:
             runningInstances: [], usageStats: [],
             lines: [], filesRead: [], truncated: false, totalMatched: 0,
             filterLevel: 'all', filterSearch: '', filterLimit: 200,
+            filterNim: '', filterAction: '', availableActions: [], entries: [],
             message: 'test',
           };
           const readdir = require('fs').readdirSync;
@@ -116,9 +117,9 @@ jobs:
     name: Unit Tests (Jest, fully mocked)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'npm'
@@ -147,9 +148,9 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'npm'
@@ -166,7 +167,7 @@ jobs:
     name: Validasi Docker Compose Config
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Siapkan .env dummy dari .env.example
         run: cp .env.example .env
@@ -182,9 +183,9 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'npm'
